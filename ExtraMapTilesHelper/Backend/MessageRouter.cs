@@ -20,6 +20,8 @@ namespace ExtraMapTilesHelper.backend
             _window = window;
         }
 
+        private string _lastDirectory = string.Empty;
+
         public void HandleMessage(object? sender, string rawMessage)
         {
             try
@@ -35,32 +37,49 @@ namespace ExtraMapTilesHelper.backend
                         break;
 
                     case "open_file_dialog":
-                        // 1. Open native Windows file picker
+                        // 1. Enable multiple file selection
                         var selectedFiles = _window.ShowOpenFile(
-                            title: "Select a YTD file",
-                            multiSelect: false,
-                            filters: new[] { ("YTD Map Files", new[] { "ytd" }) }
+                            title: "Select YTD files",
+                            defaultPath: string.IsNullOrEmpty(_lastDirectory) ? null : _lastDirectory,
+                            multiSelect: true,
+
+                            filters: new[] { ("Texture Dictionary", new[] { "ytd" }) }
                         );
 
                         if (selectedFiles != null && selectedFiles.Length > 0)
                         {
-                            string filePath = selectedFiles[0];
 
-                            // 2. Run extraction on a background thread so UI doesn't freeze
+                            _lastDirectory = Path.GetDirectoryName(selectedFiles[0]) ?? string.Empty;
+
                             Task.Run(() =>
                             {
-                                try
-                                {
-                                    var service = new CodeWalkerService();
-                                    var result = service.ExtractYtd(filePath);
+                                var service = new CodeWalkerService();
 
-                                    // 3. Send results back to UI
-                                    Send("ytd_loaded", result);
-                                }
-                                catch (Exception ex)
+                                foreach (var filePath in selectedFiles)
                                 {
-                                    Send("error", new { message = $"Extraction failed: {ex.Message}" });
+                                    try
+                                    {
+                                        string dictName = Path.GetFileNameWithoutExtension(filePath);
+
+                                        // 1. Tell the UI to prepare a section for this dictionary
+                                        Send("ytd_started", new { dictionaryName = dictName });
+
+                                        // 2. Extract and stream textures one by one
+                                        service.ExtractYtd(filePath, (textureInfo) =>
+                                        {
+                                            // Because this payload is just ONE image, WebView2 handles it flawlessly
+                                            Send("texture_loaded", new { dictionaryName = dictName, texture = textureInfo });
+                                        });
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Send("error", new { message = $"Failed to load {Path.GetFileName(filePath)}: {ex.Message}" });
+                                    }
                                 }
+
+                                // Clean up memory after everything is done
+                                GC.Collect();
+                                GC.WaitForPendingFinalizers();
                             });
                         }
                         break;
@@ -80,7 +99,9 @@ namespace ExtraMapTilesHelper.backend
         public void Send(string type, object payload)
         {
             var message = JsonSerializer.Serialize(new { type, payload }, JsonOptions);
-            _window.SendWebMessage(message);
+
+            // Safely delegates the message sending back to the main UI thread
+            _window.Invoke(() => _window.SendWebMessage(message));
         }
     }
 }

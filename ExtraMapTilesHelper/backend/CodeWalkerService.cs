@@ -16,28 +16,25 @@ namespace ExtraMapTilesHelper.backend
         public record TextureInfo(string Name, int Width, int Height, string Preview);
         public record YtdResult(string DictionaryName, List<TextureInfo> Textures);
 
-        public YtdResult ExtractYtd(string filePath)
+        // Notice we no longer return a YtdResult. We use a callback Action instead.
+        public void ExtractYtd(string filePath, Action<TextureInfo> onTextureReady)
         {
             var dictName = Path.GetFileNameWithoutExtension(filePath);
-            var textures = new List<TextureInfo>();
-
             byte[] fileData = File.ReadAllBytes(filePath);
             var ytd = new YtdFile();
 
             try
             {
-                // YOUR WORKING LOGIC: This handles headers, compression, and dummy entries automatically
                 RpfFile.LoadResourceFile(ytd, fileData, 13);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"CodeWalker YTD Load Error: {ex.Message}");
-                return new YtdResult(dictName, textures);
+                return;
             }
 
-            // Extract Textures using your custom GetDDS method
             var items = ytd.TextureDict?.Textures?.data_items;
-            if (items == null) return new YtdResult(dictName, textures);
+            if (items == null) return;
 
             foreach (var tex in items)
             {
@@ -47,7 +44,9 @@ namespace ExtraMapTilesHelper.backend
                     if (ddsBytes != null)
                     {
                         string preview = ConvertDdsToPngBase64(ddsBytes);
-                        textures.Add(new TextureInfo(tex.Name, tex.Width, tex.Height, preview));
+
+                        // Immediately send this single texture back to the router!
+                        onTextureReady(new TextureInfo(tex.Name, tex.Width, tex.Height, preview));
                     }
                 }
                 catch (Exception ex)
@@ -55,8 +54,6 @@ namespace ExtraMapTilesHelper.backend
                     Console.WriteLine($"Skipping {tex.Name}: {ex.Message}");
                 }
             }
-
-            return new YtdResult(dictName, textures);
         }
 
         // --- YOUR CUSTOM DDS EXTRACTOR ---
@@ -123,43 +120,46 @@ namespace ExtraMapTilesHelper.backend
             using var stream = new MemoryStream(ddsData);
             using var pfimImage = Pfimage.FromStream(stream);
 
-            byte[] bgra = ConvertToBgra32(pfimImage);
             var info = new SKImageInfo(pfimImage.Width, pfimImage.Height, SKColorType.Bgra8888, SKAlphaType.Unpremul);
-
             using var bitmap = new SKBitmap(info);
-            Marshal.Copy(bgra, 0, bitmap.GetPixels(), bgra.Length);
 
-            using var skImage = SKImage.FromBitmap(bitmap);
-            using var pngData = skImage.Encode(SKEncodedImageFormat.Png, 90);
+            // Get a direct pointer to SkiaSharp's image buffer
+            IntPtr ptr = bitmap.GetPixels();
 
-            return $"data:image/png;base64,{Convert.ToBase64String(pngData.ToArray())}";
-        }
-
-        private static byte[] ConvertToBgra32(IImage image)
-        {
-            int w = image.Width, h = image.Height;
-            var result = new byte[w * h * 4];
-
-            if (image.Format == ImageFormat.Rgba32)
+            if (pfimImage.Format == ImageFormat.Rgba32)
             {
-                for (int y = 0; y < h; y++)
-                    Buffer.BlockCopy(image.Data, y * image.Stride, result, y * w * 4, w * 4);
+                // RAM CRASH FIX: pfimImage.Data contains MipMaps at the end. 
+                // We must only copy the main image by reading exactly 'Height' number of rows.
+                for (int y = 0; y < pfimImage.Height; y++)
+                {
+                    // Marshal.Copy(sourceArray, sourceIndex, destinationPointer, lengthInBytes)
+                    Marshal.Copy(pfimImage.Data, y * pfimImage.Stride, ptr + (y * info.RowBytes), info.Width * 4);
+                }
             }
-            else if (image.Format == ImageFormat.Rgb24)
+            else if (pfimImage.Format == ImageFormat.Rgb24)
             {
+                int w = pfimImage.Width, h = pfimImage.Height;
+                byte[] bgra = new byte[w * h * 4];
                 for (int y = 0; y < h; y++)
                 {
                     for (int x = 0; x < w; x++)
                     {
-                        int src = y * image.Stride + x * 3, dst = (y * w + x) * 4;
-                        result[dst] = image.Data[src];
-                        result[dst + 1] = image.Data[src + 1];
-                        result[dst + 2] = image.Data[src + 2];
-                        result[dst + 3] = 255;
+                        int src = y * pfimImage.Stride + x * 3, dst = (y * w + x) * 4;
+                        bgra[dst] = pfimImage.Data[src];
+                        bgra[dst + 1] = pfimImage.Data[src + 1];
+                        bgra[dst + 2] = pfimImage.Data[src + 2];
+                        bgra[dst + 3] = 255;
                     }
                 }
+
+                // Safe copy restricted to the exact byte size Skia expects
+                Marshal.Copy(bgra, 0, ptr, info.BytesSize);
             }
-            return result;
+
+            using var skImage = SKImage.FromBitmap(bitmap);
+            using var pngData = skImage.Encode(SKEncodedImageFormat.Png, 80);
+
+            return $"data:image/png;base64,{Convert.ToBase64String(pngData.AsSpan())}";
         }
     }
 }
