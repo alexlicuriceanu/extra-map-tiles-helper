@@ -2,12 +2,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:models="using:ExtraMapTilesHelper.Models"
         x:Class="ExtraMapTilesHelper.MainWindow"
-        Title="Extra Map Tiles Helper"
+        Title="GTA Map Tile Editor"
         Background="#1e1e2e" Foreground="#cdd6f4"
-        Width="1280" Height="800"
-        Icon="/Assets/icon.ico">
+        Width="1600" Height="800">
 
-    <Grid ColumnDefinitions="300, *">
+    <Grid ColumnDefinitions="300, *, 250">
+        
         <Border Grid.Column="0" Background="#181825" BorderBrush="#313244" BorderThickness="0,0,1,0">
             <DockPanel Margin="10">
                 <Button x:Name="ImportButton" DockPanel.Dock="Top" Content="Import YTDs" Click="OnImportClicked" 
@@ -17,13 +17,15 @@
                 <ListBox x:Name="TextureList" Background="Transparent" BorderThickness="0">
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="models:TextureItem">
-                            <StackPanel Orientation="Horizontal" Spacing="10">
-                                <Image Source="{Binding Preview}" Width="64" Height="64" />
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
-                                    <TextBlock Text="{Binding DictionaryName}" FontSize="10" Foreground="#a6adc8"/>
+                            <Border Background="Transparent" PointerPressed="OnItemPointerPressed">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Image Source="{Binding Preview}" Width="64" Height="64" />
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding DictionaryName}" FontSize="10" Foreground="#a6adc8"/>
+                                    </StackPanel>
                                 </StackPanel>
-                            </StackPanel>
+                            </Border>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
@@ -31,8 +33,20 @@
         </Border>
 
         <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-            <Canvas x:Name="MapCanvas" Width="8192" Height="8192" Background="#11111b">
-                </Canvas>
+            <Canvas x:Name="MapCanvas" Width="8192" Height="8192" DragDrop.AllowDrop="True">
+                <Canvas.Background>
+                    <VisualBrush TileMode="Tile" SourceRect="0,0,256,256" DestinationRect="0,0,256,256">
+                        <VisualBrush.Visual>
+                            <Rectangle Width="256" Height="256" Stroke="#313244" StrokeThickness="1" Fill="#11111b"/>
+                        </VisualBrush.Visual>
+                    </VisualBrush>
+                </Canvas.Background>
+            </Canvas>
         </ScrollViewer>
+
+        <Border Grid.Column="2" Background="#181825" BorderBrush="#313244" BorderThickness="1,0,0,0"
+                DataContext="{Binding #TextureList.SelectedItem}">
+            
+        </Border>
     </Grid>
 </Window>
