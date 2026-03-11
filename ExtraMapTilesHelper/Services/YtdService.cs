@@ -76,14 +76,30 @@ public class YtdService
             Marshal.Copy(bgra, 0, ptr, info.BytesSize);
         }
 
-        // Convert the raw Skia pixels directly into an Avalonia UI image
-        using var image = SKImage.FromBitmap(skBitmap);
-        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        // --- THE FIX: Generate lightweight thumbnails for the UI ---
+        int maxPreviewSize = 128; // High enough quality for UI, small enough for instant scrolling
+
+        using SKImage imageToEncode = skBitmap.Width > maxPreviewSize || skBitmap.Height > maxPreviewSize
+            ? CreateThumbnail(skBitmap, maxPreviewSize)
+            : SKImage.FromBitmap(skBitmap);
+
+        using var data = imageToEncode.Encode(SKEncodedImageFormat.Png, 100);
         using var ms = new MemoryStream();
         data.SaveTo(ms);
         ms.Seek(0, SeekOrigin.Begin);
 
         return new Bitmap(ms);
+    }
+
+    // Helper method to keep memory clean during downscaling
+    private SKImage CreateThumbnail(SKBitmap original, int maxSize)
+    {
+        float ratio = Math.Min((float)maxSize / original.Width, (float)maxSize / original.Height);
+        var resizeInfo = new SKImageInfo((int)(original.Width * ratio), (int)(original.Height * ratio), SKColorType.Bgra8888, SKAlphaType.Unpremul);
+
+        // FilterQuality.Low is extremely fast and perfect for tiny thumbnails
+        using var resizedBitmap = original.Resize(resizeInfo, SKFilterQuality.Low);
+        return SKImage.FromBitmap(resizedBitmap);
     }
 
     private byte[] GetDdsWithHeader(Texture tex)
