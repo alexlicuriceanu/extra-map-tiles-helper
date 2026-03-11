@@ -1,37 +1,22 @@
-﻿using ExtraMapTilesHelper.backend;
-using Photino.NET;
+﻿using Avalonia;
 using System;
-using System.IO;
 
-namespace ExtraMapTilesHelper;
-
-class Program
+namespace ExtraMapTilesHelper
 {
-    [STAThread] // Required for Windows UI to render
-    static void Main(string[] args)
+    internal class Program
     {
-        var wwwroot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
-        var indexPath = Path.Combine(wwwroot, "index.html");
+        // Initialization code. Don't use any Avalonia, third-party APIs or any
+        // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
+        // yet and stuff might break.
+        [STAThread]
+        public static void Main(string[] args) => BuildAvaloniaApp()
+            .StartWithClassicDesktopLifetime(args);
 
-        if (!File.Exists(indexPath))
-        {
-            Console.WriteLine($"CRITICAL ERROR: Could not find UI file at {indexPath}");
-            Console.ReadLine();
-            return;
-        }
-
-        var window = new PhotinoWindow()
-            .SetTitle("Map Tile Editor")
-            .SetSize(1024, 768)
-            .Center()
-            .SetLogVerbosity(0);
-
-        var router = new MessageRouter(window);
-
-        // Tell Photino to send all JS messages to our router
-        window.RegisterWebMessageReceivedHandler(router.HandleMessage);
-
-        window.Load(new Uri(indexPath));
-        window.WaitForClose();
+        // Avalonia configuration, don't remove; also used by visual designer.
+        public static AppBuilder BuildAvaloniaApp()
+            => AppBuilder.Configure<App>()
+                .UsePlatformDetect()
+                .WithInterFont()
+                .LogToTrace();
     }
 }
