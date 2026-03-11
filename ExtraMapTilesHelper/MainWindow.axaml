@@ -2,10 +2,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:models="using:ExtraMapTilesHelper.Models"
         x:Class="ExtraMapTilesHelper.MainWindow"
-        Title="GTA Map Tile Editor"
+        Title="Extra Map Tiles Helper"
         Background="#1e1e2e" Foreground="#cdd6f4"
         Width="1600" Height="800"
-        Loaded="OnMainWindowLoaded">
+        Loaded="OnMainWindowLoaded"
+        Icon="Assets/icon.ico">
 
     <Grid ColumnDefinitions="300, *, 250">
         
