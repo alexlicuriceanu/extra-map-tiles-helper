@@ -34,7 +34,7 @@
         </Border>
 
         <ScrollViewer x:Name="MapScrollViewer" Grid.Column="1" 
-                      HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible"
                       >
             
             <LayoutTransformControl x:Name="MapZoomTransform">

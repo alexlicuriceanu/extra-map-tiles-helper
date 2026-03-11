@@ -55,7 +55,11 @@ public partial class MainWindow : Window
 
         double newZoom = Math.Clamp(_zoomLevel * zoomFactor, minZoom, maxZoom);
 
-        if (newZoom == _zoomLevel) return;
+        if (newZoom == _zoomLevel)
+        {
+            e.Handled = true;
+            return;
+        }
 
         // Get the exact mouse position relative to the scroll viewer
         var mousePos = e.GetPosition(MapScrollViewer);
