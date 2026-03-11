@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using Avalonia.Media.Imaging;
 using CodeWalker.GameFiles;
 using ExtraMapTilesHelper.Models;
@@ -15,6 +16,8 @@ public class YtdService
     public IEnumerable<TextureItem> ExtractTextures(string filePath)
     {
         var dictName = Path.GetFileNameWithoutExtension(filePath);
+        var dictFolder = TempWorkspace.GetDictionaryFolder(dictName);
+
         byte[] fileData = File.ReadAllBytes(filePath);
         var ytd = new YtdFile();
 
@@ -29,7 +32,10 @@ public class YtdService
             byte[] ddsBytes = GetDdsWithHeader(tex);
             if (ddsBytes == null) continue;
 
-            var bitmap = ConvertDdsToAvaloniaBitmap(ddsBytes);
+            string highResPath = Path.Combine(dictFolder, $"{tex.Name}.png");
+
+            var bitmap = ConvertAndSaveDds(ddsBytes, highResPath);
+
             if (bitmap != null)
             {
                 yield return new TextureItem
@@ -37,6 +43,7 @@ public class YtdService
                     Name = tex.Name,
                     DictionaryName = dictName,
                     Preview = bitmap,
+                    HighResFilePath = highResPath,
                     Width = tex.Width,
                     Height = tex.Height
                 };
@@ -44,7 +51,7 @@ public class YtdService
         }
     }
 
-    private Bitmap? ConvertDdsToAvaloniaBitmap(byte[] ddsData)
+    private Bitmap? ConvertAndSaveDds(byte[] ddsData, string outputPath)
     {
         using var stream = new MemoryStream(ddsData);
         using var pfimImage = Pfimage.FromStream(stream);
@@ -76,37 +83,38 @@ public class YtdService
             Marshal.Copy(bgra, 0, ptr, info.BytesSize);
         }
 
-        // --- THE FIX: Generate lightweight thumbnails for the UI ---
-        int maxPreviewSize = 128; // High enough quality for UI, small enough for instant scrolling
+        // 1. SAVE THE FULL-RES IMAGE TO DISK FIRST
+        using (var fullResImage = SKImage.FromBitmap(skBitmap))
+        using (var fullResData = fullResImage.Encode(SKEncodedImageFormat.Png, 100))
+        using (var fs = File.OpenWrite(outputPath))
+        {
+            fullResData.SaveTo(fs);
+        }
 
-        using SKImage imageToEncode = skBitmap.Width > maxPreviewSize || skBitmap.Height > maxPreviewSize
+        // 2. GENERATE THE LIGHTWEIGHT THUMBNAIL FOR THE UI
+        int maxPreviewSize = 128;
+        using SKImage thumbImage = skBitmap.Width > maxPreviewSize || skBitmap.Height > maxPreviewSize
             ? CreateThumbnail(skBitmap, maxPreviewSize)
             : SKImage.FromBitmap(skBitmap);
 
-        using var data = imageToEncode.Encode(SKEncodedImageFormat.Png, 100);
+        using var thumbData = thumbImage.Encode(SKEncodedImageFormat.Png, 100);
         using var ms = new MemoryStream();
-        data.SaveTo(ms);
+        thumbData.SaveTo(ms);
         ms.Seek(0, SeekOrigin.Begin);
 
         return new Bitmap(ms);
     }
 
-    // Helper method to keep memory clean during downscaling
     private SKImage CreateThumbnail(SKBitmap original, int maxSize)
     {
         float ratio = Math.Min((float)maxSize / original.Width, (float)maxSize / original.Height);
         var resizeInfo = new SKImageInfo((int)(original.Width * ratio), (int)(original.Height * ratio), SKColorType.Bgra8888, SKAlphaType.Unpremul);
-
-        // FilterQuality.Low is extremely fast and perfect for tiny thumbnails
         using var resizedBitmap = original.Resize(resizeInfo, SKFilterQuality.Low);
         return SKImage.FromBitmap(resizedBitmap);
     }
 
     private byte[] GetDdsWithHeader(Texture tex)
     {
-        // PASTE YOUR WORKING DDS HEADER BUILDER LOGIC HERE
-        // (The exact same one we used in the console app that returns 'combined')
-
         if (tex == null) return null;
         byte[] textureData = tex.Data?.FullData;
         if (textureData == null || textureData.Length == 0) return null;
@@ -133,7 +141,7 @@ public class YtdService
                             format.Contains("ATI1") || format.Contains("BC4") ? "ATI1" :
                             format.Contains("ATI2") || format.Contains("BC5") ? "ATI2" : "DXT1";
 
-            bw.Write(System.Text.Encoding.ASCII.GetBytes(fourCC));
+            bw.Write(Encoding.ASCII.GetBytes(fourCC));
             bw.Write(0); bw.Write(0); bw.Write(0); bw.Write(0); bw.Write(0);
             bw.Write(0x1000 | 0x400000); bw.Write(0); bw.Write(0); bw.Write(0); bw.Write(0);
         }
