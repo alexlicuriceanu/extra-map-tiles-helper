@@ -18,18 +18,21 @@ public partial class MainWindow : Window
 {
     public ObservableCollection<TextureItem> Textures { get; } = new();
     private readonly YtdService _ytdService = new();
-    private double _zoomLevel = 1.0;
+    private double _zoomLevel = 0.25;
 
     private void OnMainWindowLoaded(object? sender, RoutedEventArgs e)
     {
-        // Force the UI to calculate its layout so we know exactly how big the viewport is
+        // Apply the initial zoom right when the app starts
+        MapZoomTransform.LayoutTransform = new ScaleTransform(_zoomLevel, _zoomLevel);
         MapScrollViewer.UpdateLayout();
 
-        // Calculate the exact center of the 8192x8192 canvas
-        double centerX = (MapCanvas.Width - MapScrollViewer.Viewport.Width) / 2;
-        double centerY = (MapCanvas.Height - MapScrollViewer.Viewport.Height) / 2;
+        // Calculate the center based on the NEW scaled size of the canvas
+        double scaledWidth = MapCanvas.Width * _zoomLevel;
+        double scaledHeight = MapCanvas.Height * _zoomLevel;
 
-        // Move the scrollbars to the center
+        double centerX = (scaledWidth - MapScrollViewer.Viewport.Width) / 2;
+        double centerY = (scaledHeight - MapScrollViewer.Viewport.Height) / 2;
+
         MapScrollViewer.Offset = new Avalonia.Vector(centerX, centerY);
     }
 
