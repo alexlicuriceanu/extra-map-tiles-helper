@@ -26,4 +26,8 @@
       <HintPath>lib\CodeWalker.Core.dll</HintPath>
     </Reference>
   </ItemGroup>
+
+  <ItemGroup>
+	  <AvaloniaResource Include="Assets\**"/>
+  </ItemGroup>
 </Project>

@@ -9,7 +9,7 @@ public static class TempWorkspace
 
     public static void Initialize()
     {
-        RootPath = Path.Combine(Path.GetTempPath(), "extramaptileshelper_temp");
+        RootPath = Path.Combine(Path.GetTempPath(), "ExtraMapTilesHelper");
         Cleanup(); // Wipe any leftovers from a previous crash
         Directory.CreateDirectory(RootPath);
     }

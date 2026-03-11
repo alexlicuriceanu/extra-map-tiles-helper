@@ -41,7 +41,7 @@ public partial class MainWindow : Window
 
         // Disable button to prevent double clicks
         ImportButton.IsEnabled = false;
-        ImportButton.Content = "Extracting...";
+        ImportButton.Content = "Working...";
 
         // 2. Push the heavy lifting to a background thread
         await Task.Run(() =>
