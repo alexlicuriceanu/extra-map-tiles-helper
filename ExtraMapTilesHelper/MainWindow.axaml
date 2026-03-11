@@ -52,7 +52,9 @@
                       PointerMoved="OnMapPointerMoved"
                       PointerReleased="OnMapPointerReleased">
             
-            <LayoutTransformControl x:Name="MapZoomTransform">
+            <LayoutTransformControl x:Name="MapZoomTransform"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
                 <Canvas x:Name="MapCanvas"
                         Width="8192"
                         Height="8192"
