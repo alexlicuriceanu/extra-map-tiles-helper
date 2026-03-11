@@ -50,7 +50,7 @@ public partial class MainWindow : Window
         // 2. CLAMP THE ZOOM (Prevents the grid from disappearing)
         // First number is minimum zoom out (0.2 = 20%). 
         // Second number is maximum zoom in (5.0 = 500%).
-        double minZoom = 0.13; // Don't go below 0.15 or the grid renderer crashes!
+        double minZoom = 0.15; // Don't go below 0.15 or the grid renderer crashes!
         double maxZoom = 5.0;
 
         double newZoom = Math.Clamp(_zoomLevel * zoomFactor, minZoom, maxZoom);
@@ -85,12 +85,15 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    public ObservableCollection<DictionaryItem> Dictionaries { get; } = new();
+
     public MainWindow()
     {
         InitializeComponent();
-        TextureList.ItemsSource = Textures;
 
-        // Listen for items being dropped on the canvas
+        // Bind the TreeView to our new Dictionary collection
+        TextureTree.ItemsSource = Dictionaries;
+
         AddHandler(DragDrop.DropEvent, OnCanvasDrop);
     }
 
@@ -114,17 +117,25 @@ public partial class MainWindow : Window
             {
                 string dictName = System.IO.Path.GetFileNameWithoutExtension(file.Path.LocalPath);
 
+                // 1. DUPLICATE CHECK: Remove the whole dictionary if it already exists
                 Dispatcher.UIThread.Invoke(() =>
                 {
-                    var oldItems = Textures.Where(t => t.DictionaryName == dictName).ToList();
-                    foreach (var item in oldItems) Textures.Remove(item);
+                    var existingDict = Dictionaries.FirstOrDefault(d => d.Name == dictName);
+                    if (existingDict != null) Dictionaries.Remove(existingDict);
                 });
 
+                // 2. Create the new parent dictionary
+                var newDict = new DictionaryItem { Name = dictName };
+
+                // 3. Extract textures and add them TO THE DICTIONARY, not the main UI yet
                 var extractedTextures = _ytdService.ExtractTextures(file.Path.LocalPath);
                 foreach (var tex in extractedTextures)
                 {
-                    Dispatcher.UIThread.Post(() => Textures.Add(tex));
+                    newDict.Textures.Add(tex);
                 }
+
+                // 4. Safely push the fully loaded dictionary to the UI
+                Dispatcher.UIThread.Post(() => Dictionaries.Add(newDict));
             }
         });
 
@@ -175,6 +186,22 @@ public partial class MainWindow : Window
             Canvas.SetTop(mapImage, dropPosition.Y);
 
             MapCanvas.Children.Add(mapImage);
+        }
+    }
+
+    private void OnDictionaryPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        // Only react to Left Click
+        var point = e.GetCurrentPoint(sender as Control);
+        if (!point.Properties.IsLeftButtonPressed) return;
+
+        // Find the dictionary we clicked and toggle its expanded state
+        if (sender is Control control && control.DataContext is DictionaryItem dict)
+        {
+            dict.IsExpanded = !dict.IsExpanded;
+
+            // Mark as handled so the click doesn't accidentally trigger other background events
+            e.Handled = true;
         }
     }
 }

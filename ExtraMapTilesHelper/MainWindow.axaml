@@ -15,29 +15,38 @@
                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                         Background="#89b4fa" Foreground="#11111b" FontWeight="Bold" Margin="0,0,0,10"/>
                 
-                <ListBox x:Name="TextureList" Background="Transparent" BorderThickness="0">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate x:DataType="models:TextureItem">
+                <TreeView x:Name="TextureTree" Background="Transparent" BorderThickness="0">
+                    
+                    <TreeView.Styles>
+                        <Style Selector="TreeViewItem" x:DataType="models:DictionaryItem">
+                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                        </Style>
+                    </TreeView.Styles>
+                    
+                    <TreeView.DataTemplates>
+                        <TreeDataTemplate DataType="models:DictionaryItem" ItemsSource="{Binding Textures}">
+                            <Border Background="Transparent" PointerPressed="OnDictionaryPointerPressed">
+                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#89b4fa" Padding="0,5"/>
+                            </Border>
+                        </TreeDataTemplate>
+                        
+                        <DataTemplate DataType="models:TextureItem">
                             <Border Background="Transparent" PointerPressed="OnItemPointerPressed">
                                 <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <Image Source="{Binding Preview}" Width="64" Height="64" />
-                                    <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
-                                        <TextBlock Text="{Binding DictionaryName}" FontSize="10" Foreground="#a6adc8"/>
-                                    </StackPanel>
+                                    <Image Source="{Binding Preview}" Width="48" Height="48" />
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
                         </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                        
+                    </TreeView.DataTemplates>
+                </TreeView>
             </DockPanel>
         </Border>
 
         <ScrollViewer x:Name="MapScrollViewer" Grid.Column="1" 
                       HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible"
-                      >
-            
-            <LayoutTransformControl x:Name="MapZoomTransform">
+                      AllowAutoHide="False"> <LayoutTransformControl x:Name="MapZoomTransform">
                 <Canvas x:Name="MapCanvas" Width="8192" Height="8192" DragDrop.AllowDrop="True" PointerWheelChanged="OnMapPointerWheelChanged">
                     <Canvas.Background>
                         <VisualBrush TileMode="Tile" SourceRect="0,0,256,256" DestinationRect="0,0,256,256">
@@ -46,14 +55,13 @@
                             </VisualBrush.Visual>
                         </VisualBrush>
                     </Canvas.Background>
+
+                    <Ellipse Canvas.Left="4086" Canvas.Top="4086" Width="20" Height="20" 
+                             Fill="#f38ba8" Stroke="#11111b" StrokeThickness="2" ZIndex="100"
+                             ToolTip.Tip="Center Anchor Point (4096, 4096)"/>
                 </Canvas>
             </LayoutTransformControl>
 
         </ScrollViewer>
-
-        <Border Grid.Column="2" Background="#181825" BorderBrush="#313244" BorderThickness="1,0,0,0"
-                DataContext="{Binding #TextureList.SelectedItem}">
-            
-        </Border>
     </Grid>
 </Window>
