@@ -39,9 +39,21 @@ public partial class MainWindow : Window
     // 2. Zoom to Mouse Cursor
     private void OnMapPointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
-        // Determine if we are scrolling up (zoom in) or down (zoom out)
-        double zoomFactor = e.Delta.Y > 0 ? 1.15 : 0.85; // 15% zoom per scroll click
-        double newZoom = Math.Clamp(_zoomLevel * zoomFactor, 0.1, 5.0); // Restrict from 10% to 500% zoom
+        // 3. SET ZOOM SPEED
+        // 1.10 = 10% zoom per tick (slower/smoother)
+        // 1.25 = 25% zoom per tick (faster/snappier)
+        double zoomInSpeed = 1.15;
+        double zoomOutSpeed = 0.85;
+
+        double zoomFactor = e.Delta.Y > 0 ? zoomInSpeed : zoomOutSpeed;
+
+        // 2. CLAMP THE ZOOM (Prevents the grid from disappearing)
+        // First number is minimum zoom out (0.2 = 20%). 
+        // Second number is maximum zoom in (5.0 = 500%).
+        double minZoom = 0.13; // Don't go below 0.15 or the grid renderer crashes!
+        double maxZoom = 5.0;
+
+        double newZoom = Math.Clamp(_zoomLevel * zoomFactor, minZoom, maxZoom);
 
         if (newZoom == _zoomLevel) return;
 
@@ -66,7 +78,6 @@ public partial class MainWindow : Window
 
         MapScrollViewer.Offset = new Avalonia.Vector(newOffsetX, newOffsetY);
 
-        // Tell Avalonia we handled the mouse wheel so it doesn't accidentally scroll the window down
         e.Handled = true;
     }
 
