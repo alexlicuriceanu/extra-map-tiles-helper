@@ -47,7 +47,12 @@
 
         <ScrollViewer x:Name="MapScrollViewer" Grid.Column="1" 
                       HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible"
-                      AllowAutoHide="False"> <LayoutTransformControl x:Name="MapZoomTransform">
+                      AllowAutoHide="False"
+                      PointerPressed="OnMapPointerPressed"
+                      PointerMoved="OnMapPointerMoved"
+                      PointerReleased="OnMapPointerReleased">
+            
+            <LayoutTransformControl x:Name="MapZoomTransform">
                 <Canvas x:Name="MapCanvas" Width="8192" Height="8192" DragDrop.AllowDrop="True" PointerWheelChanged="OnMapPointerWheelChanged">
                     <Canvas.Background>
                         <VisualBrush TileMode="Tile" SourceRect="0,0,256,256" DestinationRect="0,0,256,256">

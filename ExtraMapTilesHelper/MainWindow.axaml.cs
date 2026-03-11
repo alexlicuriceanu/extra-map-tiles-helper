@@ -1,6 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input; // Required for DragDrop
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
@@ -19,6 +19,8 @@ public partial class MainWindow : Window
     public ObservableCollection<TextureItem> Textures { get; } = new();
     private readonly YtdService _ytdService = new();
     private double _zoomLevel = 0.25;
+    private bool _isPanning = false;
+    private Avalonia.Point _lastPanPoint;
 
     private void OnMainWindowLoaded(object? sender, RoutedEventArgs e)
     {
@@ -83,6 +85,64 @@ public partial class MainWindow : Window
         MapScrollViewer.Offset = new Avalonia.Vector(newOffsetX, newOffsetY);
 
         e.Handled = true;
+    }
+
+    private void OnMapPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        var point = e.GetCurrentPoint(sender as Control);
+
+        // 1. Only trigger if they clicked the Middle Mouse Button (Scroll Wheel)
+        if (point.Properties.IsMiddleButtonPressed)
+        {
+            _isPanning = true;
+
+            // Record exactly where the mouse was when they clicked
+            _lastPanPoint = e.GetPosition(MapScrollViewer);
+
+            // Change the cursor to indicate we are grabbing the map
+            MapScrollViewer.Cursor = new Cursor(StandardCursorType.SizeAll);
+
+            // "Capture" the pointer so if they drag outside the window, it doesn't break the pan
+            e.Pointer.Capture(sender as Avalonia.Input.InputElement);
+            e.Handled = true;
+        }
+    }
+
+    private void OnMapPointerMoved(object? sender, PointerEventArgs e)
+    {
+        // 2. If we aren't currently panning, do nothing
+        if (!_isPanning) return;
+
+        var currentPoint = e.GetPosition(MapScrollViewer);
+
+        // Calculate the physical distance the mouse moved since the last frame
+        double deltaX = _lastPanPoint.X - currentPoint.X;
+        double deltaY = _lastPanPoint.Y - currentPoint.Y;
+
+        // Apply that exact movement to the ScrollViewer's offset
+        MapScrollViewer.Offset = new Avalonia.Vector(
+            MapScrollViewer.Offset.X + deltaX,
+            MapScrollViewer.Offset.Y + deltaY
+        );
+
+        // Update the last point for the next frame
+        _lastPanPoint = currentPoint;
+    }
+
+    private void OnMapPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        // 3. Stop panning when they let go of the middle mouse button
+        if (_isPanning && e.InitialPressMouseButton == MouseButton.Middle)
+        {
+            _isPanning = false;
+
+            // Reset the cursor back to normal
+            MapScrollViewer.Cursor = Cursor.Default;
+
+            // Release the captured mouse
+            e.Pointer.Capture(null);
+            e.Handled = true;
+        }
     }
 
     public ObservableCollection<DictionaryItem> Dictionaries { get; } = new();
