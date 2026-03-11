@@ -1,13 +1,16 @@
-using System.Linq;
-using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input; // Required for DragDrop
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
-using System.Collections.ObjectModel;
 using ExtraMapTilesHelper.Models;
 using ExtraMapTilesHelper.Services;
+using System;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ExtraMapTilesHelper;
 
@@ -15,6 +18,54 @@ public partial class MainWindow : Window
 {
     public ObservableCollection<TextureItem> Textures { get; } = new();
     private readonly YtdService _ytdService = new();
+    private double _zoomLevel = 1.0;
+
+    private void OnMainWindowLoaded(object? sender, RoutedEventArgs e)
+    {
+        // Force the UI to calculate its layout so we know exactly how big the viewport is
+        MapScrollViewer.UpdateLayout();
+
+        // Calculate the exact center of the 8192x8192 canvas
+        double centerX = (MapCanvas.Width - MapScrollViewer.Viewport.Width) / 2;
+        double centerY = (MapCanvas.Height - MapScrollViewer.Viewport.Height) / 2;
+
+        // Move the scrollbars to the center
+        MapScrollViewer.Offset = new Avalonia.Vector(centerX, centerY);
+    }
+
+    // 2. Zoom to Mouse Cursor
+    private void OnMapPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    {
+        // Determine if we are scrolling up (zoom in) or down (zoom out)
+        double zoomFactor = e.Delta.Y > 0 ? 1.15 : 0.85; // 15% zoom per scroll click
+        double newZoom = Math.Clamp(_zoomLevel * zoomFactor, 0.1, 5.0); // Restrict from 10% to 500% zoom
+
+        if (newZoom == _zoomLevel) return;
+
+        // Get the exact mouse position relative to the scroll viewer
+        var mousePos = e.GetPosition(MapScrollViewer);
+        var scrollOffset = MapScrollViewer.Offset;
+
+        // Calculate where the mouse is looking on the absolute map before the zoom
+        double absoluteX = (scrollOffset.X + mousePos.X) / _zoomLevel;
+        double absoluteY = (scrollOffset.Y + mousePos.Y) / _zoomLevel;
+
+        // Apply the new zoom level
+        _zoomLevel = newZoom;
+        MapZoomTransform.LayoutTransform = new ScaleTransform(_zoomLevel, _zoomLevel);
+
+        // Force Avalonia to recalculate the canvas size with the new zoom
+        MapScrollViewer.UpdateLayout();
+
+        // Adjust the scrollbars so the absolute coordinate stays exactly under the mouse cursor
+        double newOffsetX = (absoluteX * _zoomLevel) - mousePos.X;
+        double newOffsetY = (absoluteY * _zoomLevel) - mousePos.Y;
+
+        MapScrollViewer.Offset = new Avalonia.Vector(newOffsetX, newOffsetY);
+
+        // Tell Avalonia we handled the mouse wheel so it doesn't accidentally scroll the window down
+        e.Handled = true;
+    }
 
     public MainWindow()
     {

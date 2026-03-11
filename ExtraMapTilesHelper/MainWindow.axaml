@@ -4,7 +4,8 @@
         x:Class="ExtraMapTilesHelper.MainWindow"
         Title="GTA Map Tile Editor"
         Background="#1e1e2e" Foreground="#cdd6f4"
-        Width="1600" Height="800">
+        Width="1600" Height="800"
+        Loaded="OnMainWindowLoaded">
 
     <Grid ColumnDefinitions="300, *, 250">
         
@@ -32,16 +33,22 @@
             </DockPanel>
         </Border>
 
-        <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-            <Canvas x:Name="MapCanvas" Width="8192" Height="8192" DragDrop.AllowDrop="True">
-                <Canvas.Background>
-                    <VisualBrush TileMode="Tile" SourceRect="0,0,256,256" DestinationRect="0,0,256,256">
-                        <VisualBrush.Visual>
-                            <Rectangle Width="256" Height="256" Stroke="#313244" StrokeThickness="1" Fill="#11111b"/>
-                        </VisualBrush.Visual>
-                    </VisualBrush>
-                </Canvas.Background>
-            </Canvas>
+        <ScrollViewer x:Name="MapScrollViewer" Grid.Column="1" 
+                      HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                      >
+            
+            <LayoutTransformControl x:Name="MapZoomTransform">
+                <Canvas x:Name="MapCanvas" Width="8192" Height="8192" DragDrop.AllowDrop="True" PointerWheelChanged="OnMapPointerWheelChanged">
+                    <Canvas.Background>
+                        <VisualBrush TileMode="Tile" SourceRect="0,0,256,256" DestinationRect="0,0,256,256">
+                            <VisualBrush.Visual>
+                                <Rectangle Width="256" Height="256" Stroke="#313244" StrokeThickness="1" Fill="#11111b"/>
+                            </VisualBrush.Visual>
+                        </VisualBrush>
+                    </Canvas.Background>
+                </Canvas>
+            </LayoutTransformControl>
+
         </ScrollViewer>
 
         <Border Grid.Column="2" Background="#181825" BorderBrush="#313244" BorderThickness="1,0,0,0"
