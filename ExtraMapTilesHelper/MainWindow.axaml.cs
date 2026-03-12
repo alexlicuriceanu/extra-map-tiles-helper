@@ -18,7 +18,14 @@ public partial class MainWindow : Window
 {
     public ObservableCollection<TextureItem> Textures { get; } = new();
     private readonly YtdService _ytdService = new();
-    private double _zoomLevel = 0.5;
+
+    private const double DefaultZoom = 0.5;
+    private const double MinZoom = 0.15;
+    private const double MaxZoom = 5.0;
+    private const double ZoomInSpeed = 1.15;
+    private const double ZoomOutSpeed = 0.85;
+
+    private double _zoomLevel = DefaultZoom;
     private bool _isPanning = false;
     private Avalonia.Point _lastPanPoint;
 
@@ -33,11 +40,19 @@ public partial class MainWindow : Window
             // RootTransform.LayoutTransform = new ScaleTransform(1 / scaling, 1 / scaling);
         }
 
-        // Apply the initial zoom right when the app starts
+        ResetView();
+    }
+
+    private void ResetView()
+    {
+        _zoomLevel = DefaultZoom;
         MapZoomTransform.LayoutTransform = new ScaleTransform(_zoomLevel, _zoomLevel);
         MapScrollViewer.UpdateLayout();
+        CenterViewOnMap();
+    }
 
-        // Calculate the center based on the NEW scaled size of the canvas
+    private void CenterViewOnMap()
+    {
         double scaledWidth = MapCanvas.Width * _zoomLevel;
         double scaledHeight = MapCanvas.Height * _zoomLevel;
 
@@ -47,54 +62,105 @@ public partial class MainWindow : Window
         MapScrollViewer.Offset = new Avalonia.Vector(centerX, centerY);
     }
 
-    // 2. Zoom to Mouse Cursor
-    private void OnMapPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    private void ZoomAtViewportPoint(double zoomFactor, Avalonia.Point viewportPoint)
     {
-        // 3. SET ZOOM SPEED
-        // 1.10 = 10% zoom per tick (slower/smoother)
-        // 1.25 = 25% zoom per tick (faster/snappier)
-        double zoomInSpeed = 1.15;
-        double zoomOutSpeed = 0.85;
+        double newZoom = Math.Clamp(_zoomLevel * zoomFactor, MinZoom, MaxZoom);
+        if (newZoom == _zoomLevel) return;
 
-        double zoomFactor = e.Delta.Y > 0 ? zoomInSpeed : zoomOutSpeed;
-
-        // 2. CLAMP THE ZOOM (Prevents the grid from disappearing)
-        // First number is minimum zoom out (0.2 = 20%). 
-        // Second number is maximum zoom in (5.0 = 500%).
-        double minZoom = 0.15; // Don't go below 0.15 or the grid renderer crashes!
-        double maxZoom = 5.0;
-
-        double newZoom = Math.Clamp(_zoomLevel * zoomFactor, minZoom, maxZoom);
-
-        if (newZoom == _zoomLevel)
-        {
-            e.Handled = true;
-            return;
-        }
-
-        // Get the exact mouse position relative to the scroll viewer
-        var mousePos = e.GetPosition(MapScrollViewer);
         var scrollOffset = MapScrollViewer.Offset;
 
-        // Calculate where the mouse is looking on the absolute map before the zoom
-        double absoluteX = (scrollOffset.X + mousePos.X) / _zoomLevel;
-        double absoluteY = (scrollOffset.Y + mousePos.Y) / _zoomLevel;
+        double absoluteX = (scrollOffset.X + viewportPoint.X) / _zoomLevel;
+        double absoluteY = (scrollOffset.Y + viewportPoint.Y) / _zoomLevel;
 
-        // Apply the new zoom level
         _zoomLevel = newZoom;
         MapZoomTransform.LayoutTransform = new ScaleTransform(_zoomLevel, _zoomLevel);
-
-        // Force Avalonia to recalculate the canvas size with the new zoom
         MapScrollViewer.UpdateLayout();
 
-        // Adjust the scrollbars so the absolute coordinate stays exactly under the mouse cursor
-        double newOffsetX = (absoluteX * _zoomLevel) - mousePos.X;
-        double newOffsetY = (absoluteY * _zoomLevel) - mousePos.Y;
+        double newOffsetX = (absoluteX * _zoomLevel) - viewportPoint.X;
+        double newOffsetY = (absoluteY * _zoomLevel) - viewportPoint.Y;
 
         MapScrollViewer.Offset = new Avalonia.Vector(newOffsetX, newOffsetY);
+    }
 
+    private void ZoomAtViewportCenter(double zoomFactor)
+    {
+        var center = new Avalonia.Point(
+            MapScrollViewer.Viewport.Width / 2.0,
+            MapScrollViewer.Viewport.Height / 2.0);
+
+        ZoomAtViewportPoint(zoomFactor, center);
+    }
+
+    private void OnMapPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    {
+        double zoomFactor = e.Delta.Y > 0 ? ZoomInSpeed : ZoomOutSpeed;
+        ZoomAtViewportPoint(zoomFactor, e.GetPosition(MapScrollViewer));
         e.Handled = true;
     }
+
+    private void OnResetViewClicked(object? sender, RoutedEventArgs e)
+    {
+        ResetView();
+    }
+
+    private void OnZoomInClicked(object? sender, RoutedEventArgs e)
+    {
+        ZoomAtViewportCenter(ZoomInSpeed);
+    }
+
+    private void OnZoomOutClicked(object? sender, RoutedEventArgs e)
+    {
+        ZoomAtViewportCenter(ZoomOutSpeed);
+    }
+
+    // 2. Zoom to Mouse Cursor
+    //private void OnMapPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    //{
+    //     3. SET ZOOM SPEED
+    //     1.10 = 10% zoom per tick (slower/smoother)
+    //     1.25 = 25% zoom per tick (faster/snappier)
+    //    double zoomInSpeed = 1.15;
+    //    double zoomOutSpeed = 0.85;
+
+    //    double zoomFactor = e.Delta.Y > 0 ? zoomInSpeed : zoomOutSpeed;
+
+    //     2. CLAMP THE ZOOM (Prevents the grid from disappearing)
+    //     First number is minimum zoom out (0.2 = 20%). 
+    //     Second number is maximum zoom in (5.0 = 500%).
+    //    double minZoom = 0.15; // Don't go below 0.15 or the grid renderer crashes!
+    //    double maxZoom = 5.0;
+
+    //    double newZoom = Math.Clamp(_zoomLevel * zoomFactor, minZoom, maxZoom);
+
+    //    if (newZoom == _zoomLevel)
+    //    {
+    //        e.Handled = true;
+    //        return;
+    //    }
+
+    //     Get the exact mouse position relative to the scroll viewer
+    //    var mousePos = e.GetPosition(MapScrollViewer);
+    //    var scrollOffset = MapScrollViewer.Offset;
+
+    //     Calculate where the mouse is looking on the absolute map before the zoom
+    //    double absoluteX = (scrollOffset.X + mousePos.X) / _zoomLevel;
+    //    double absoluteY = (scrollOffset.Y + mousePos.Y) / _zoomLevel;
+
+    //     Apply the new zoom level
+    //    _zoomLevel = newZoom;
+    //    MapZoomTransform.LayoutTransform = new ScaleTransform(_zoomLevel, _zoomLevel);
+
+    //     Force Avalonia to recalculate the canvas size with the new zoom
+    //    MapScrollViewer.UpdateLayout();
+
+    //     Adjust the scrollbars so the absolute coordinate stays exactly under the mouse cursor
+    //    double newOffsetX = (absoluteX * _zoomLevel) - mousePos.X;
+    //    double newOffsetY = (absoluteY * _zoomLevel) - mousePos.Y;
+
+    //    MapScrollViewer.Offset = new Avalonia.Vector(newOffsetX, newOffsetY);
+
+    //    e.Handled = true;
+    //}
 
     private void OnMapPointerPressed(object? sender, PointerPressedEventArgs e)
     {

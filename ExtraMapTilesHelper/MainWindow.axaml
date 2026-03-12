@@ -15,6 +15,13 @@
 			<MenuItem Header="_File">
 				<MenuItem x:Name="ImportMenuItem" Header="_Import YTDs" Click="OnImportClicked"/>
 			</MenuItem>
+
+			<MenuItem Header="_View">
+				<MenuItem Header="_Reset View" Click="OnResetViewClicked"/>
+				<Separator/>
+				<MenuItem Header="Zoom _In" Click="OnZoomInClicked"/>
+				<MenuItem Header="Zoom _Out" Click="OnZoomOutClicked"/>
+			</MenuItem>
 		</Menu>
 
 		<Grid ColumnDefinitions="300, *, 250">
