@@ -343,4 +343,32 @@ public partial class MainWindow : Window
             e.Handled = true;
         }
     }
+
+    private void OnWindowKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (!e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            return;
+        }
+
+        if (e.Key == Key.R)
+        {
+            ResetView();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key is Key.OemPlus or Key.Add)
+        {
+            ZoomAtViewportCenter(ZoomInSpeed);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key is Key.OemMinus or Key.Subtract)
+        {
+            ZoomAtViewportCenter(ZoomOutSpeed);
+            e.Handled = true;
+        }
+    }
 }
