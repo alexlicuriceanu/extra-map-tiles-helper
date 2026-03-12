@@ -10,15 +10,17 @@
         Icon="Assets/icon.ico">
 
 	<LayoutTransformControl x:Name="RootTransform">
-    <Grid ColumnDefinitions="300, *, 250">
-        
-        <Border Grid.Column="0" Background="#181825" BorderBrush="#313244" BorderThickness="0,0,1,0">
-            <DockPanel Margin="10">
-                <Button x:Name="ImportButton" DockPanel.Dock="Top" Content="Import YTDs" Click="OnImportClicked" 
-                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                        Background="#89b4fa" Foreground="#11111b" FontWeight="Bold" Margin="0,0,0,10"/>
-                
-                <TreeView x:Name="TextureTree" Background="Transparent" BorderThickness="0">
+	<DockPanel>
+		<Menu DockPanel.Dock="Top" Background="#181825" Foreground="#cdd6f4">
+			<MenuItem Header="_File">
+				<MenuItem x:Name="ImportMenuItem" Header="_Import YTDs" Click="OnImportClicked"/>
+			</MenuItem>
+		</Menu>
+
+		<Grid ColumnDefinitions="300, *, 250">
+
+			<Border Grid.Column="0" Background="#181825" BorderBrush="#313244" BorderThickness="0,0,1,0">
+				<TreeView x:Name="TextureTree" Background="Transparent" BorderThickness="0" Margin="10">
                     
                     <TreeView.Styles>
                         <Style Selector="TreeViewItem" x:DataType="models:DictionaryItem">
@@ -44,10 +46,9 @@
                         
                     </TreeView.DataTemplates>
                 </TreeView>
-            </DockPanel>
-        </Border>
+            </Border>
 
-        <ScrollViewer x:Name="MapScrollViewer" Grid.Column="1" 
+            <ScrollViewer x:Name="MapScrollViewer" Grid.Column="1"
                       HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible"
                       AllowAutoHide="False"
                       PointerPressed="OnMapPointerPressed"
@@ -92,7 +93,8 @@
                 </Canvas>
             </LayoutTransformControl>
 
-        </ScrollViewer>
-    </Grid>
-    </LayoutTransformControl>
-</Window>
+                    </ScrollViewer>
+                </Grid>
+            </DockPanel>
+            </LayoutTransformControl>
+        </Window>

@@ -177,8 +177,7 @@ public partial class MainWindow : Window
 
         if (files.Count == 0) return;
 
-        ImportButton.IsEnabled = false;
-        ImportButton.Content = "Extracting...";
+        ImportMenuItem.IsEnabled = false;
 
         await Task.Run(() =>
         {
@@ -208,8 +207,7 @@ public partial class MainWindow : Window
             }
         });
 
-        ImportButton.IsEnabled = true;
-        ImportButton.Content = "Import YTDs";
+        ImportMenuItem.IsEnabled = true;
     }
 
     // --- NEW DRAG AND DROP LOGIC ---
