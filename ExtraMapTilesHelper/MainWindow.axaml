@@ -3,9 +3,12 @@
         xmlns:models="using:ExtraMapTilesHelper.Models"
         x:Class="ExtraMapTilesHelper.MainWindow"
         Title="Extra Map Tiles Helper"
-        Background="#1e1e2e" Foreground="#cdd6f4"
-		MinWidth="512" MinHeight="360"
-		WindowStartupLocation="CenterScreen"
+        Background="#1e1e2e"
+        Foreground="#cdd6f4"
+        FontFamily="Segoe UI Variable, Segoe UI"
+        FontSize="12"
+        MinWidth="512" MinHeight="360"
+        WindowStartupLocation="CenterScreen"
         Loaded="OnMainWindowLoaded"
         Icon="Assets/icon.ico">
 
