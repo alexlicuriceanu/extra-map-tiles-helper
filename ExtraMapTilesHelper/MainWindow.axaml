@@ -4,10 +4,12 @@
         x:Class="ExtraMapTilesHelper.MainWindow"
         Title="Extra Map Tiles Helper"
         Background="#1e1e2e" Foreground="#cdd6f4"
-        Width="1600" Height="800"
+		MinWidth="512" MinHeight="360"
+		WindowStartupLocation="CenterScreen"
         Loaded="OnMainWindowLoaded"
         Icon="Assets/icon.ico">
 
+	<LayoutTransformControl x:Name="RootTransform">
     <Grid ColumnDefinitions="300, *, 250">
         
         <Border Grid.Column="0" Background="#181825" BorderBrush="#313244" BorderThickness="0,0,1,0">
@@ -92,4 +94,5 @@
 
         </ScrollViewer>
     </Grid>
+    </LayoutTransformControl>
 </Window>

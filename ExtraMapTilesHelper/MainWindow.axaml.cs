@@ -24,6 +24,15 @@ public partial class MainWindow : Window
 
     private void OnMainWindowLoaded(object? sender, RoutedEventArgs e)
     {
+        var screen = Screens.Primary;
+        if (screen != null)
+        {
+            double scaling = screen.Scaling;
+            Width = screen.WorkingArea.Width / scaling * 0.8;
+            Height = screen.WorkingArea.Height / scaling * 0.8;
+            // RootTransform.LayoutTransform = new ScaleTransform(1 / scaling, 1 / scaling);
+        }
+
         // Apply the initial zoom right when the app starts
         MapZoomTransform.LayoutTransform = new ScaleTransform(_zoomLevel, _zoomLevel);
         MapScrollViewer.UpdateLayout();
