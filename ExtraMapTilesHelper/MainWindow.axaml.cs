@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private const double MaxZoom = 5.0;
     private const double ZoomInSpeed = 1.15;
     private const double ZoomOutSpeed = 0.85;
+    private const double GridCellSize = 256.0;
 
     private double _zoomLevel = DefaultZoom;
     private bool _isPanning = false;
@@ -303,26 +304,37 @@ public partial class MainWindow : Window
         {
             var dropPosition = e.GetPosition(MapCanvas);
 
-            // --- THE MEMORY FIX ---
-            // Instead of loading the massive 8K image raw, we open a stream and decode it 
-            // to a max width of 4096 (4K). This cuts memory usage by 75% per tile!
+            // Detect which grid square was targeted
+            int column = (int)Math.Floor(dropPosition.X / GridCellSize);
+            int row = (int)Math.Floor(dropPosition.Y / GridCellSize);
+
+            int maxColumn = (int)(MapCanvas.Width / GridCellSize) - 1;
+            int maxRow = (int)(MapCanvas.Height / GridCellSize) - 1;
+
+            column = Math.Clamp(column, 0, maxColumn);
+            row = Math.Clamp(row, 0, maxRow);
+
+            double snappedX = column * GridCellSize;
+            double snappedY = row * GridCellSize;
+
+            // Decode at cell size (lower memory than 1024 for this use-case)
             Avalonia.Media.Imaging.Bitmap canvasBitmap;
             using (var stream = System.IO.File.OpenRead(item.HighResFilePath))
             {
-                // DecodeToWidth mathematically scales the image down while loading it into RAM
                 canvasBitmap = Avalonia.Media.Imaging.Bitmap.DecodeToWidth(stream, 1024);
             }
 
             var mapImage = new Image
             {
-                Source = canvasBitmap, // Use the optimized bitmap
-                Width = item.Width,    // Keep the actual 8192 width so it takes up the right space on the grid!
-                Height = item.Height,
+                Source = canvasBitmap,
+                Width = GridCellSize,
+                Height = GridCellSize,
+                Stretch = Stretch.Fill,
                 Tag = item
             };
 
-            Canvas.SetLeft(mapImage, dropPosition.X);
-            Canvas.SetTop(mapImage, dropPosition.Y);
+            Canvas.SetLeft(mapImage, snappedX);
+            Canvas.SetTop(mapImage, snappedY);
 
             MapCanvas.Children.Add(mapImage);
         }
