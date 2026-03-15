@@ -86,7 +86,7 @@
             </Border>
 
             <ScrollViewer x:Name="MapScrollViewer" Grid.Column="1"
-                      HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible"
+                      HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                       AllowAutoHide="False"
                       PointerPressed="OnMapPointerPressed"
                       PointerMoved="OnMapPointerMoved"
@@ -126,7 +126,7 @@
                              Stroke="#11111b"
                              StrokeThickness="2"
                              ZIndex="100"
-                             ToolTip.Tip="Center Anchor Point (4096, 4096)"/>
+                             ToolTip.Tip="In-game map tile anchor point; top left corner of tile at offset (0, 0)"/>
                 </Canvas>
             </LayoutTransformControl>
 

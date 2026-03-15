@@ -60,12 +60,12 @@ public class YtdService
         using var skBitmap = new SKBitmap(info);
         IntPtr ptr = skBitmap.GetPixels();
 
-        if (pfimImage.Format == ImageFormat.Rgba32)
+        if (pfimImage.Format == Pfim.ImageFormat.Rgba32)
         {
             for (int y = 0; y < pfimImage.Height; y++)
                 Marshal.Copy(pfimImage.Data, y * pfimImage.Stride, ptr + (y * skBitmap.RowBytes), pfimImage.Width * 4);
         }
-        else if (pfimImage.Format == ImageFormat.Rgb24)
+        else if (pfimImage.Format == Pfim.ImageFormat.Rgb24)
         {
             int w = pfimImage.Width, h = pfimImage.Height;
             byte[] bgra = new byte[w * h * 4];
@@ -81,6 +81,11 @@ public class YtdService
                 }
             }
             Marshal.Copy(bgra, 0, ptr, info.BytesSize);
+        }
+        else
+        {
+            // Fallback for other formats (like R5G6B5 potentially) - Try direct copy if strides match, 
+            // but usually Pfim converts to 32/24 bit. If strictly needed, we can implement more converters here.
         }
 
         // 1. SAVE THE FULL-RES IMAGE TO DISK FIRST
@@ -120,30 +125,99 @@ public class YtdService
         if (textureData == null || textureData.Length == 0) return null;
 
         int width = tex.Width, height = tex.Height, mips = tex.Levels;
-        string format = tex.Format.ToString();
+        string format = tex.Format.ToString().ToUpper(); // Ensure case-insensitive check
 
-        byte[] header = new byte[128];
+        string fourCC = "DXT1";
+        bool isDx10 = false;
+        uint dxgiFormat = 0;
+        int blockSize = 16;
+        
+        // Determine Format, FourCC, and BlockSize
+        if (format.Contains("DXT1") || format.Contains("BC1"))
+        {
+            fourCC = "DXT1";
+            blockSize = 8;
+        }
+        else if (format.Contains("DXT3") || format.Contains("BC2"))
+        {
+            fourCC = "DXT3";
+        }
+        else if (format.Contains("DXT5") || format.Contains("BC3"))
+        {
+            fourCC = "DXT5";
+        }
+        else if (format.Contains("ATI1") || format.Contains("BC4"))
+        {
+            fourCC = "ATI1";
+            blockSize = 8;
+        }
+        else if (format.Contains("ATI2") || format.Contains("BC5"))
+        {
+            fourCC = "ATI2";
+        }
+        else if (format.Contains("BC7"))
+        {
+            fourCC = "DX10";
+            isDx10 = true;
+            dxgiFormat = 98; // DXGI_FORMAT_BC7_UNORM
+            blockSize = 16;
+        }
+        else
+        {
+            // Default to DXT1 if unknown, though this might fail decoding
+            fourCC = "DXT1";
+            blockSize = 8;
+        }
+
+        // Header size: 128 standard + 20 for DX10 extension if needed
+        int headerSize = 128 + (isDx10 ? 20 : 0);
+        
+        byte[] header = new byte[headerSize];
         using (MemoryStream ms = new MemoryStream(header))
         using (BinaryWriter bw = new BinaryWriter(ms))
         {
-            bw.Write(0x20534444); bw.Write(124);
-            bw.Write(0x1 | 0x2 | 0x4 | 0x1000 | 0x20000 | 0x80000);
-            bw.Write(height); bw.Write(width);
+            bw.Write(0x20534444); // Magic "DDS "
+            bw.Write(124);        // dwSize
 
-            int blockSize = (format.Contains("DXT1") || format.Contains("BC1")) ? 8 : 16;
+            // dwFlags (Caps | Height | Width | PixelFormat | MipMapCount | LinearSize)
+            bw.Write(0x1 | 0x2 | 0x4 | 0x1000 | 0x20000 | 0x80000); 
+
+            bw.Write(height);
+            bw.Write(width);
+
+            // Pitch/LinearSize
             bw.Write(Math.Max(1, ((width + 3) / 4)) * blockSize * height);
-            bw.Write(0); bw.Write(mips);
-            for (int i = 0; i < 11; i++) bw.Write(0);
+            
+            bw.Write(0); // Depth
+            bw.Write(mips); // MipMapCount
+            for (int i = 0; i < 11; i++) bw.Write(0); // Reserved
 
-            bw.Write(32); bw.Write(0x4);
-            string fourCC = format.Contains("DXT3") || format.Contains("BC2") ? "DXT3" :
-                            format.Contains("DXT5") || format.Contains("BC3") ? "DXT5" :
-                            format.Contains("ATI1") || format.Contains("BC4") ? "ATI1" :
-                            format.Contains("ATI2") || format.Contains("BC5") ? "ATI2" : "DXT1";
-
+            // DDPIXELFORMAT
+            bw.Write(32); // Size
+            bw.Write(0x4); // DDPF_FOURCC
             bw.Write(Encoding.ASCII.GetBytes(fourCC));
-            bw.Write(0); bw.Write(0); bw.Write(0); bw.Write(0); bw.Write(0);
-            bw.Write(0x1000 | 0x400000); bw.Write(0); bw.Write(0); bw.Write(0); bw.Write(0);
+            bw.Write(0); // RGBBitCount
+            bw.Write(0); // RBitMask
+            bw.Write(0); // GBitMask
+            bw.Write(0); // BBitMask
+            bw.Write(0); // ABitMask
+
+            // Caps
+            bw.Write(0x1000 | 0x400000); // dwCaps (Texture | MipMap)
+            bw.Write(0); // dwCaps2
+            bw.Write(0); // dwCaps3
+            bw.Write(0); // dwCaps4
+            bw.Write(0); // Reserved2
+
+            // Write DX10 Header Extension
+            if (isDx10)
+            {
+                bw.Write(dxgiFormat); // dxgiFormat (BC7_UNORM = 98)
+                bw.Write(3);          // resourceDimension (Texture2D = 3)
+                bw.Write(0);          // miscFlag
+                bw.Write(1);          // arraySize
+                bw.Write(0);          // miscFlags2
+            }
         }
 
         byte[] combined = new byte[header.Length + textureData.Length];
