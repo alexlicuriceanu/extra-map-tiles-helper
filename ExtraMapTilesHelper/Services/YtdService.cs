@@ -8,6 +8,8 @@ using CodeWalker.GameFiles;
 using ExtraMapTilesHelper.Models;
 using Pfim;
 using SkiaSharp;
+using System.Collections.Concurrent; // Add this to your usings at the top!
+using System.Threading.Tasks;        // Add this to your usings at the top!
 
 namespace ExtraMapTilesHelper.Services;
 
@@ -22,23 +24,29 @@ public class YtdService
         var ytd = new YtdFile();
 
         try { RpfFile.LoadResourceFile(ytd, fileData, 13); }
-        catch { yield break; }
+        catch { return Array.Empty<TextureItem>(); }
 
         var items = ytd.TextureDict?.Textures?.data_items;
-        if (items == null) yield break;
+        if (items == null) return Array.Empty<TextureItem>();
 
-        foreach (var tex in items)
+        // 1. A thread-safe collection to hold the textures as they finish
+        var results = new ConcurrentBag<TextureItem>();
+
+        // 2. PARALLEL PROCESSING: Max out the CPU cores!
+        Parallel.ForEach(items, tex =>
         {
             byte[] ddsBytes = GetDdsWithHeader(tex);
-            if (ddsBytes == null) continue;
+            if (ddsBytes == null) return; // 'continue' becomes 'return' in a Parallel lambda
 
             string highResPath = Path.Combine(dictFolder, $"{tex.Name}.png");
 
+            // ConvertAndSaveDds is completely thread-safe because every thread 
+            // gets its own MemoryStream and file path!
             var bitmap = ConvertAndSaveDds(ddsBytes, highResPath);
 
             if (bitmap != null)
             {
-                yield return new TextureItem
+                results.Add(new TextureItem
                 {
                     Name = tex.Name,
                     DictionaryName = dictName,
@@ -46,9 +54,12 @@ public class YtdService
                     HighResFilePath = highResPath,
                     Width = tex.Width,
                     Height = tex.Height
-                };
+                });
             }
-        }
+        });
+
+        // 3. Return the populated bag
+        return results;
     }
 
     private Bitmap? ConvertAndSaveDds(byte[] ddsData, string outputPath)
