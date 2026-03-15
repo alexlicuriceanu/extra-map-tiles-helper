@@ -114,55 +114,6 @@ public partial class MainWindow : Window
         ZoomAtViewportCenter(ZoomOutSpeed);
     }
 
-    // 2. Zoom to Mouse Cursor
-    //private void OnMapPointerWheelChanged(object? sender, PointerWheelEventArgs e)
-    //{
-    //     3. SET ZOOM SPEED
-    //     1.10 = 10% zoom per tick (slower/smoother)
-    //     1.25 = 25% zoom per tick (faster/snappier)
-    //    double zoomInSpeed = 1.15;
-    //    double zoomOutSpeed = 0.85;
-
-    //    double zoomFactor = e.Delta.Y > 0 ? zoomInSpeed : zoomOutSpeed;
-
-    //     2. CLAMP THE ZOOM (Prevents the grid from disappearing)
-    //     First number is minimum zoom out (0.2 = 20%). 
-    //     Second number is maximum zoom in (5.0 = 500%).
-    //    double minZoom = 0.15; // Don't go below 0.15 or the grid renderer crashes!
-    //    double maxZoom = 5.0;
-
-    //    double newZoom = Math.Clamp(_zoomLevel * zoomFactor, minZoom, maxZoom);
-
-    //    if (newZoom == _zoomLevel)
-    //    {
-    //        e.Handled = true;
-    //        return;
-    //    }
-
-    //     Get the exact mouse position relative to the scroll viewer
-    //    var mousePos = e.GetPosition(MapScrollViewer);
-    //    var scrollOffset = MapScrollViewer.Offset;
-
-    //     Calculate where the mouse is looking on the absolute map before the zoom
-    //    double absoluteX = (scrollOffset.X + mousePos.X) / _zoomLevel;
-    //    double absoluteY = (scrollOffset.Y + mousePos.Y) / _zoomLevel;
-
-    //     Apply the new zoom level
-    //    _zoomLevel = newZoom;
-    //    MapZoomTransform.LayoutTransform = new ScaleTransform(_zoomLevel, _zoomLevel);
-
-    //     Force Avalonia to recalculate the canvas size with the new zoom
-    //    MapScrollViewer.UpdateLayout();
-
-    //     Adjust the scrollbars so the absolute coordinate stays exactly under the mouse cursor
-    //    double newOffsetX = (absoluteX * _zoomLevel) - mousePos.X;
-    //    double newOffsetY = (absoluteY * _zoomLevel) - mousePos.Y;
-
-    //    MapScrollViewer.Offset = new Avalonia.Vector(newOffsetX, newOffsetY);
-
-    //    e.Handled = true;
-    //}
-
     private void OnMapPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         var point = e.GetCurrentPoint(sender as Control);
@@ -235,6 +186,93 @@ public partial class MainWindow : Window
         AddHandler(DragDrop.DragLeaveEvent, OnCanvasDragLeave);
     }
 
+    private Point CalculateDropPosition(Point mousePosition)
+    {
+        // Target top-left coordinate so the tile centers on the mouse cursor
+        double targetX = mousePosition.X - (GridCellSize / 2);
+        double targetY = mousePosition.Y - (GridCellSize / 2);
+        
+        double snapThreshold = 48.0; // Distance in pixels to trigger a snap
+        double bestDist = snapThreshold;
+        
+        Point bestSnap = new Point(targetX, targetY);
+        bool foundSnap = false;
+
+        // 1. Calculate the closest Grid Snap Point
+        double gridX = Math.Round(targetX / GridCellSize) * GridCellSize;
+        double gridY = Math.Round(targetY / GridCellSize) * GridCellSize;
+
+        // Clamp grid bounds
+        double maxGridX = MapCanvas.Width - GridCellSize;
+        double maxGridY = MapCanvas.Height - GridCellSize;
+        gridX = Math.Clamp(gridX, 0, maxGridX);
+        gridY = Math.Clamp(gridY, 0, maxGridY);
+
+        double distToGrid = Math.Sqrt(Math.Pow(targetX - gridX, 2) + Math.Pow(targetY - gridY, 2));
+        if (distToGrid < bestDist)
+        {
+            bestDist = distToGrid;
+            bestSnap = new Point(gridX, gridY);
+            foundSnap = true;
+        }
+
+        // 2. Calculate the closest Tile Snap Point (useful for off-grid tile attachments)
+        foreach (var child in MapCanvas.Children)
+        {
+            if (child is Image img)
+            {
+                double imgX = Canvas.GetLeft(img);
+                double imgY = Canvas.GetTop(img);
+
+                // OPTIMIZATION: Broad-phase overlap check. If this whole tile is way too far 
+                // from the mouse to possibly have a valid snap point, skip it entirely!
+                if (Math.Abs(imgX - targetX) > (GridCellSize + snapThreshold) || 
+                    Math.Abs(imgY - targetY) > (GridCellSize + snapThreshold))
+                {
+                    continue;
+                }
+
+                // Array of 8 connection points to snap to around the existing image
+                Point[] snapPoints = new Point[]
+                {
+                    new Point(imgX - GridCellSize, imgY),               // Left
+                    new Point(imgX + GridCellSize, imgY),               // Right
+                    new Point(imgX, imgY - GridCellSize),               // Top
+                    new Point(imgX, imgY + GridCellSize),               // Bottom
+                    new Point(imgX - GridCellSize, imgY - GridCellSize), // Top-Left
+                    new Point(imgX + GridCellSize, imgY - GridCellSize), // Top-Right
+                    new Point(imgX - GridCellSize, imgY + GridCellSize), // Bottom-Left
+                    new Point(imgX + GridCellSize, imgY + GridCellSize)  // Bottom-Right
+                };
+
+                foreach (var sp in snapPoints)
+                {
+                    // Bound-check for canvas edges
+                    if (sp.X < 0 || sp.Y < 0 || sp.X > maxGridX || sp.Y > maxGridY)
+                        continue;
+
+                    double dist = Math.Sqrt(Math.Pow(targetX - sp.X, 2) + Math.Pow(targetY - sp.Y, 2));
+                    if (dist < bestDist)
+                    {
+                        bestDist = dist;
+                        bestSnap = sp;
+                        foundSnap = true;
+                        
+                        // OPTIMIZATION: If we hit exactly 0 (or almost 0), we can't find a better snap, 
+                        // so return immediately rather than checking all other tiles.
+                        if (bestDist < 1.0) 
+                        {
+                            return bestSnap;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Return the snapped coordinate, or fallback to free-placement if nothing is close
+        return foundSnap ? bestSnap : new Point(targetX, targetY);
+    }
+
     private void OnCanvasDragOver(object? sender, DragEventArgs e)
     {
         if (!e.Data.Contains("DraggedTexture"))
@@ -247,24 +285,11 @@ public partial class MainWindow : Window
         e.DragEffects = DragDropEffects.Copy;
         
         var position = e.GetPosition(MapCanvas);
-        
-        // Calculate grid snap (same logic as drop)
-        int column = (int)Math.Floor(position.X / GridCellSize);
-        int row = (int)Math.Floor(position.Y / GridCellSize);
-
-        // Clamp to map bounds
-        int maxColumn = (int)(MapCanvas.Width / GridCellSize) - 1;
-        int maxRow = (int)(MapCanvas.Height / GridCellSize) - 1;
-
-        column = Math.Clamp(column, 0, maxColumn);
-        row = Math.Clamp(row, 0, maxRow);
-
-        double snappedX = column * GridCellSize;
-        double snappedY = row * GridCellSize;
+        var snappedPosition = CalculateDropPosition(position);
 
         // Move the highlight rectangle
-        Canvas.SetLeft(DragHighlight, snappedX);
-        Canvas.SetTop(DragHighlight, snappedY);
+        Canvas.SetLeft(DragHighlight, snappedPosition.X);
+        Canvas.SetTop(DragHighlight, snappedPosition.Y);
         
         if (!DragHighlight.IsVisible)
         {
@@ -350,19 +375,7 @@ public partial class MainWindow : Window
         if (e.Data.Contains("DraggedTexture") && e.Data.Get("DraggedTexture") is TextureItem item)
         {
             var dropPosition = e.GetPosition(MapCanvas);
-
-            // Detect which grid square was targeted
-            int column = (int)Math.Floor(dropPosition.X / GridCellSize);
-            int row = (int)Math.Floor(dropPosition.Y / GridCellSize);
-
-            int maxColumn = (int)(MapCanvas.Width / GridCellSize) - 1;
-            int maxRow = (int)(MapCanvas.Height / GridCellSize) - 1;
-
-            column = Math.Clamp(column, 0, maxColumn);
-            row = Math.Clamp(row, 0, maxRow);
-
-            double snappedX = column * GridCellSize;
-            double snappedY = row * GridCellSize;
+            var finalPosition = CalculateDropPosition(dropPosition);
 
             // Decode at cell size (lower memory than 1024 for this use-case)
             Avalonia.Media.Imaging.Bitmap canvasBitmap;
@@ -380,8 +393,8 @@ public partial class MainWindow : Window
                 Tag = item
             };
 
-            Canvas.SetLeft(mapImage, snappedX);
-            Canvas.SetTop(mapImage, snappedY);
+            Canvas.SetLeft(mapImage, finalPosition.X);
+            Canvas.SetTop(mapImage, finalPosition.Y);
 
             MapCanvas.Children.Add(mapImage);
         }

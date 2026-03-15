@@ -120,13 +120,13 @@
 
                     <!-- Highlight Rectangle for Drag & Drop -->
                     <Rectangle x:Name="DragHighlight"
-                               Width="256" Height="256"
-                               Fill="#66a6e3a1"
-                               Stroke="#a6e3a1"
-                               StrokeThickness="2"
-                               IsHitTestVisible="False"
-                               IsVisible="False"
-                               ZIndex="90"/>
+                                Width="256" Height="256"
+                                Fill="#66a6e3a1"
+                                Stroke="#a6e3a1"
+                                StrokeThickness="2"
+                                IsHitTestVisible="False"
+                                IsVisible="False"
+                                ZIndex="90"/>
 
                     <Ellipse Canvas.Left="4086"
                              Canvas.Top="4086"
