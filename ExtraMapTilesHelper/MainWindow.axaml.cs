@@ -32,7 +32,7 @@ public partial class MainWindow : Window
 
     // --- NEW: DRAG AND DROP CACHE ---
     private Point _lastSnappedPosition = new Point(-1000, -1000);
-    private readonly System.Collections.Generic.List<Point> _cachedTilePositions = new();
+    private readonly System.Collections.Generic.Dictionary<(int X, int Y), System.Collections.Generic.List<Point>> _spatialHash = new();
     private Point _lastRawMousePosition = new Point(-1000, -1000);
 
     private void OnMainWindowLoaded(object? sender, RoutedEventArgs e)
@@ -194,16 +194,32 @@ public partial class MainWindow : Window
 
     private void OnCanvasDragEnter(object? sender, DragEventArgs e)
     {
-        // 1. Reset our short-circuit tracker
         _lastSnappedPosition = new Point(-1000, -1000);
 
-        // 2. Build a lightweight list of tile coordinates
-        _cachedTilePositions.Clear();
+        // 1. Clear the spatial hash
+        _spatialHash.Clear();
+
+        // 2. Sort every tile into its mathematical bucket
         foreach (var child in MapCanvas.Children)
         {
             if (child is Grid grid && grid.Name != "DragHighlight")
             {
-                _cachedTilePositions.Add(new Point(Canvas.GetLeft(grid), Canvas.GetTop(grid)));
+                double tileX = Canvas.GetLeft(grid);
+                double tileY = Canvas.GetTop(grid);
+
+                // Calculate which bucket this tile belongs in
+                int bucketX = (int)(tileX / GridCellSize);
+                int bucketY = (int)(tileY / GridCellSize);
+                var bucketKey = (bucketX, bucketY);
+
+                // If this bucket doesn't exist yet, create it
+                if (!_spatialHash.ContainsKey(bucketKey))
+                {
+                    _spatialHash[bucketKey] = new System.Collections.Generic.List<Point>();
+                }
+
+                // Add the tile to its designated bucket
+                _spatialHash[bucketKey].Add(new Point(tileX, tileY));
             }
         }
     }
@@ -238,43 +254,57 @@ public partial class MainWindow : Window
         }
 
         // 2. Calculate the closest Tile Snap Point
-        foreach (var cachedPos in _cachedTilePositions)
+        // 1. What bucket is the mouse currently in?
+        int mouseBucketX = (int)(targetX / GridCellSize);
+        int mouseBucketY = (int)(targetY / GridCellSize);
+
+        // 2. Only check the mouse's bucket and the immediate neighbors (a 5x5 chunk area)
+        for (int bx = mouseBucketX - 2; bx <= mouseBucketX + 2; bx++)
         {
-            double imgX = cachedPos.X;
-            double imgY = cachedPos.Y;
-
-            if (Math.Abs(imgX - targetX) > (GridCellSize + snapThreshold) ||
-                Math.Abs(imgY - targetY) > (GridCellSize + snapThreshold))
+            for (int by = mouseBucketY - 2; by <= mouseBucketY + 2; by++)
             {
-                continue;
-            }
-
-            Point[] snapPoints = new Point[]
-            {
-                new Point(imgX - GridCellSize, imgY),
-                new Point(imgX + GridCellSize, imgY),
-                new Point(imgX, imgY - GridCellSize),
-                new Point(imgX, imgY + GridCellSize),
-                new Point(imgX - GridCellSize, imgY - GridCellSize),
-                new Point(imgX + GridCellSize, imgY - GridCellSize),
-                new Point(imgX - GridCellSize, imgY + GridCellSize),
-                new Point(imgX + GridCellSize, imgY + GridCellSize)
-            };
-
-            foreach (var sp in snapPoints)
-            {
-                if (sp.X < 0 || sp.Y < 0 || sp.X > maxGridX || sp.Y > maxGridY) continue;
-
-                // Eliminate Math.Sqrt!
-                double distSq = Math.Pow(targetX - sp.X, 2) + Math.Pow(targetY - sp.Y, 2);
-
-                if (distSq < bestDistSq)
+                // Instantly grab the tiles in this chunk. If the chunk is empty, skip instantly!
+                if (_spatialHash.TryGetValue((bx, by), out var tilesInBucket))
                 {
-                    bestDistSq = distSq;
-                    bestSnap = sp;
-                    foundSnap = true;
+                    foreach (var cachedPos in tilesInBucket)
+                    {
+                        double imgX = cachedPos.X;
+                        double imgY = cachedPos.Y;
 
-                    if (bestDistSq < 1.0) return bestSnap;
+                        if (Math.Abs(imgX - targetX) > (GridCellSize + snapThreshold) ||
+                            Math.Abs(imgY - targetY) > (GridCellSize + snapThreshold))
+                        {
+                            continue;
+                        }
+
+                        Point[] snapPoints = new Point[]
+                        {
+                            new Point(imgX - GridCellSize, imgY),
+                            new Point(imgX + GridCellSize, imgY),
+                            new Point(imgX, imgY - GridCellSize),
+                            new Point(imgX, imgY + GridCellSize),
+                            new Point(imgX - GridCellSize, imgY - GridCellSize),
+                            new Point(imgX + GridCellSize, imgY - GridCellSize),
+                            new Point(imgX - GridCellSize, imgY + GridCellSize),
+                            new Point(imgX + GridCellSize, imgY + GridCellSize)
+                        };
+
+                        foreach (var sp in snapPoints)
+                        {
+                            if (sp.X < 0 || sp.Y < 0 || sp.X > maxGridX || sp.Y > maxGridY) continue;
+
+                            double distSq = Math.Pow(targetX - sp.X, 2) + Math.Pow(targetY - sp.Y, 2);
+
+                            if (distSq < bestDistSq)
+                            {
+                                bestDistSq = distSq;
+                                bestSnap = sp;
+                                foundSnap = true;
+
+                                if (bestDistSq < 1.0) return bestSnap;
+                            }
+                        }
+                    }
                 }
             }
         }
