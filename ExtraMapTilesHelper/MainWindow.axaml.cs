@@ -295,11 +295,18 @@ public partial class MainWindow : Window
         {
             DragHighlight.IsVisible = true;
         }
+        
+        // Prevent event bubbling that can trigger the Leave event unintentionally
+        e.Handled = true; 
     }
 
     private void OnCanvasDragLeave(object? sender, RoutedEventArgs e)
     {
-        DragHighlight.IsVisible = false;
+        // Only hide if the e is actually related to the canvas boundary
+        if (e.Source == MapCanvas)
+        {
+            DragHighlight.IsVisible = false;
+        }
     }
 
     private async void OnImportClicked(object? sender, RoutedEventArgs e)

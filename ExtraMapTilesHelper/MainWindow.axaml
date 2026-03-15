@@ -60,8 +60,8 @@
 				<TreeView x:Name="TextureTree" Background="Transparent" BorderThickness="0" Margin="10">
                     
                     <TreeView.Styles>
-                        <Style Selector="TreeViewItem" x:DataType="models:DictionaryItem">
-                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                        <Style Selector="TreeViewItem">
+                            <Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
                         </Style>
                     </TreeView.Styles>
                     
