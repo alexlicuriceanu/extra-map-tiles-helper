@@ -33,6 +33,7 @@ public partial class MainWindow : Window
     // --- NEW: DRAG AND DROP CACHE ---
     private Point _lastSnappedPosition = new Point(-1000, -1000);
     private readonly System.Collections.Generic.List<Point> _cachedTilePositions = new();
+    private Point _lastRawMousePosition = new Point(-1000, -1000);
 
     private void OnMainWindowLoaded(object? sender, RoutedEventArgs e)
     {
@@ -209,12 +210,12 @@ public partial class MainWindow : Window
 
     private Point CalculateDropPosition(Point mousePosition)
     {
-        // Target top-left coordinate so the tile centers on the mouse cursor
         double targetX = mousePosition.X - (GridCellSize / 2);
         double targetY = mousePosition.Y - (GridCellSize / 2);
 
-        double snapThreshold = 48.0; // Distance in pixels to trigger a snap
-        double bestDist = snapThreshold;
+        // --- NEW: DISTANCE SQUARED MATH ---
+        double snapThreshold = 48.0;
+        double bestDistSq = snapThreshold * snapThreshold; // 2304
 
         Point bestSnap = new Point(targetX, targetY);
         bool foundSnap = false;
@@ -223,71 +224,61 @@ public partial class MainWindow : Window
         double gridX = Math.Round(targetX / GridCellSize) * GridCellSize;
         double gridY = Math.Round(targetY / GridCellSize) * GridCellSize;
 
-        // Clamp grid bounds
         double maxGridX = MapCanvas.Width - GridCellSize;
         double maxGridY = MapCanvas.Height - GridCellSize;
         gridX = Math.Clamp(gridX, 0, maxGridX);
         gridY = Math.Clamp(gridY, 0, maxGridY);
 
-        double distToGrid = Math.Sqrt(Math.Pow(targetX - gridX, 2) + Math.Pow(targetY - gridY, 2));
-        if (distToGrid < bestDist)
+        double distToGridSq = Math.Pow(targetX - gridX, 2) + Math.Pow(targetY - gridY, 2);
+        if (distToGridSq < bestDistSq)
         {
-            bestDist = distToGrid;
+            bestDistSq = distToGridSq;
             bestSnap = new Point(gridX, gridY);
             foundSnap = true;
         }
 
-        // 2. Calculate the closest Tile Snap Point using our CACHE instead of UI controls!
+        // 2. Calculate the closest Tile Snap Point
         foreach (var cachedPos in _cachedTilePositions)
         {
             double imgX = cachedPos.X;
             double imgY = cachedPos.Y;
 
-            // OPTIMIZATION: Broad-phase overlap check. If this whole tile is way too far 
-            // from the mouse to possibly have a valid snap point, skip it entirely!
             if (Math.Abs(imgX - targetX) > (GridCellSize + snapThreshold) ||
                 Math.Abs(imgY - targetY) > (GridCellSize + snapThreshold))
             {
                 continue;
             }
 
-            // Array of 8 connection points to snap to around the existing image
             Point[] snapPoints = new Point[]
             {
-            new Point(imgX - GridCellSize, imgY),               // Left
-            new Point(imgX + GridCellSize, imgY),               // Right
-            new Point(imgX, imgY - GridCellSize),               // Top
-            new Point(imgX, imgY + GridCellSize),               // Bottom
-            new Point(imgX - GridCellSize, imgY - GridCellSize), // Top-Left
-            new Point(imgX + GridCellSize, imgY - GridCellSize), // Top-Right
-            new Point(imgX - GridCellSize, imgY + GridCellSize), // Bottom-Left
-            new Point(imgX + GridCellSize, imgY + GridCellSize)  // Bottom-Right
+                new Point(imgX - GridCellSize, imgY),
+                new Point(imgX + GridCellSize, imgY),
+                new Point(imgX, imgY - GridCellSize),
+                new Point(imgX, imgY + GridCellSize),
+                new Point(imgX - GridCellSize, imgY - GridCellSize),
+                new Point(imgX + GridCellSize, imgY - GridCellSize),
+                new Point(imgX - GridCellSize, imgY + GridCellSize),
+                new Point(imgX + GridCellSize, imgY + GridCellSize)
             };
 
             foreach (var sp in snapPoints)
             {
-                // Bound-check for canvas edges
-                if (sp.X < 0 || sp.Y < 0 || sp.X > maxGridX || sp.Y > maxGridY)
-                    continue;
+                if (sp.X < 0 || sp.Y < 0 || sp.X > maxGridX || sp.Y > maxGridY) continue;
 
-                double dist = Math.Sqrt(Math.Pow(targetX - sp.X, 2) + Math.Pow(targetY - sp.Y, 2));
-                if (dist < bestDist)
+                // Eliminate Math.Sqrt!
+                double distSq = Math.Pow(targetX - sp.X, 2) + Math.Pow(targetY - sp.Y, 2);
+
+                if (distSq < bestDistSq)
                 {
-                    bestDist = dist;
+                    bestDistSq = distSq;
                     bestSnap = sp;
                     foundSnap = true;
 
-                    // OPTIMIZATION: If we hit exactly 0 (or almost 0), we can't find a better snap, 
-                    // so return immediately rather than checking all other tiles.
-                    if (bestDist < 1.0)
-                    {
-                        return bestSnap;
-                    }
+                    if (bestDistSq < 1.0) return bestSnap;
                 }
             }
         }
 
-        // Return the snapped coordinate, or fallback to free-placement if nothing is close
         return foundSnap ? bestSnap : new Point(targetX, targetY);
     }
 
@@ -301,25 +292,31 @@ public partial class MainWindow : Window
         }
 
         e.DragEffects = DragDropEffects.Copy;
-
         var position = e.GetPosition(MapCanvas);
+
+        // --- NEW: THE THROTTLE ---
+        // If the mouse hasn't moved at least 5 pixels since the last calculation, skip the heavy math!
+        double rawDistSq = Math.Pow(position.X - _lastRawMousePosition.X, 2) + Math.Pow(position.Y - _lastRawMousePosition.Y, 2);
+        if (rawDistSq < 25) // 5 pixels squared
+        {
+            e.Handled = true;
+            return;
+        }
+        _lastRawMousePosition = position; // Update the tracker
+
         var snappedPosition = CalculateDropPosition(position);
 
-        // THE FIX: Only update the UI if the snapped position actually changed!
         if (snappedPosition == _lastSnappedPosition)
         {
             e.Handled = true;
             return;
         }
 
-        // Record the new position so we don't update it again until it changes
         _lastSnappedPosition = snappedPosition;
 
-        if (DragHighlight.RenderTransform is TranslateTransform transform)
-        {
-            transform.X = snappedPosition.X;
-            transform.Y = snappedPosition.Y;
-        }
+        // THE FIX: Use Canvas positioning so Avalonia cleans up the old pixels!
+        Canvas.SetLeft(DragHighlight, snappedPosition.X);
+        Canvas.SetTop(DragHighlight, snappedPosition.Y);
 
         if (!DragHighlight.IsVisible)
         {

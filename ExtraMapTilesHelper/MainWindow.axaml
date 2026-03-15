@@ -111,11 +111,10 @@
                         </VisualBrush>
                     </Canvas.Background>
 
-                    <Rectangle x:Name="DragHighlight" Canvas.Left="0" Canvas.Top="0" Width="256" Height="256" Fill="#66a6e3a1" Stroke="#a6e3a1" StrokeThickness="2" IsHitTestVisible="False" IsVisible="False" ZIndex="90">
-                        <Rectangle.RenderTransform>
-                            <TranslateTransform/>
-                        </Rectangle.RenderTransform>
-                    </Rectangle>
+                    <Rectangle x:Name="DragHighlight"
+                               Width="256" Height="256"
+                               Fill="#66a6e3a1" Stroke="#a6e3a1" StrokeThickness="2"
+                               IsHitTestVisible="False" IsVisible="False" ZIndex="90" />
 
                     <Ellipse Canvas.Left="2038"
                              Canvas.Top="2038"
