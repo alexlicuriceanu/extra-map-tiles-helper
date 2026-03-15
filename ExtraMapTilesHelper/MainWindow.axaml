@@ -96,47 +96,36 @@
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center">
                 <Canvas x:Name="MapCanvas"
-                        Width="8192"
-                        Height="8192"
+                        Width="4096"
+                        Height="4096"
                         DragDrop.AllowDrop="True"
                         PointerWheelChanged="OnMapPointerWheelChanged"
                         RenderOptions.BitmapInterpolationMode="LowQuality"
                         ClipToBounds="True">
+                    
                     <Canvas.Background>
-                        <VisualBrush TileMode="Tile"
-                                     SourceRect="0,0,256,256"
-                                     DestinationRect="0,0,256,256">
-
+                        <VisualBrush TileMode="Tile" SourceRect="0,0,256,256" DestinationRect="0,0,256,256">
                             <VisualBrush.Visual>
-                                <Rectangle Width="256"
-                                           Height="256"
-                                           Stroke="#313244"
-                                           StrokeThickness="1"
-                                           Fill="#11111b"
-                                           IsHitTestVisible="False"/>
+                                <Rectangle Width="256" Height="256" Stroke="#313244" StrokeThickness="1" Fill="#11111b" IsHitTestVisible="False"/>
                             </VisualBrush.Visual>
                         </VisualBrush>
                     </Canvas.Background>
 
-                    <!-- Highlight Rectangle for Drag & Drop -->
-                    <Rectangle x:Name="DragHighlight"
-                                Width="256" Height="256"
-                                Fill="#66a6e3a1"
-                                Stroke="#a6e3a1"
-                                StrokeThickness="2"
-                                IsHitTestVisible="False"
-                                IsVisible="False"
-                                ZIndex="90"/>
+                    <Rectangle x:Name="DragHighlight" Canvas.Left="0" Canvas.Top="0" Width="256" Height="256" Fill="#66a6e3a1" Stroke="#a6e3a1" StrokeThickness="2" IsHitTestVisible="False" IsVisible="False" ZIndex="90">
+                        <Rectangle.RenderTransform>
+                            <TranslateTransform/>
+                        </Rectangle.RenderTransform>
+                    </Rectangle>
 
-                    <Ellipse Canvas.Left="4086"
-                             Canvas.Top="4086"
+                    <Ellipse Canvas.Left="2038"
+                             Canvas.Top="2038"
                              Width="20"
                              Height="20" 
                              Fill="#f38ba8"
                              Stroke="#11111b"
                              StrokeThickness="2"
                              ZIndex="100"
-                             ToolTip.Tip="In-game map tile anchor point; top left corner of the tile at offset (0, 0)"/>
+                             ToolTip.Tip="Center Anchor Point (2048, 2048)"/>
                 </Canvas>
             </LayoutTransformControl>
 

@@ -30,6 +30,10 @@ public partial class MainWindow : Window
     private bool _isPanning = false;
     private Avalonia.Point _lastPanPoint;
 
+    // --- NEW: DRAG AND DROP CACHE ---
+    private Point _lastSnappedPosition = new Point(-1000, -1000);
+    private readonly System.Collections.Generic.List<Point> _cachedTilePositions = new();
+
     private void OnMainWindowLoaded(object? sender, RoutedEventArgs e)
     {
         var screen = Screens.Primary;
@@ -177,13 +181,30 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-
-        // Bind the TreeView to our new Dictionary collection
         TextureTree.ItemsSource = Dictionaries;
 
         AddHandler(DragDrop.DropEvent, OnCanvasDrop);
         AddHandler(DragDrop.DragOverEvent, OnCanvasDragOver);
         AddHandler(DragDrop.DragLeaveEvent, OnCanvasDragLeave);
+
+        // NEW: Listen for when the mouse first enters the canvas
+        AddHandler(DragDrop.DragEnterEvent, OnCanvasDragEnter);
+    }
+
+    private void OnCanvasDragEnter(object? sender, DragEventArgs e)
+    {
+        // 1. Reset our short-circuit tracker
+        _lastSnappedPosition = new Point(-1000, -1000);
+
+        // 2. Build a lightweight list of tile coordinates
+        _cachedTilePositions.Clear();
+        foreach (var child in MapCanvas.Children)
+        {
+            if (child is Grid grid && grid.Name != "DragHighlight")
+            {
+                _cachedTilePositions.Add(new Point(Canvas.GetLeft(grid), Canvas.GetTop(grid)));
+            }
+        }
     }
 
     private Point CalculateDropPosition(Point mousePosition)
@@ -191,10 +212,10 @@ public partial class MainWindow : Window
         // Target top-left coordinate so the tile centers on the mouse cursor
         double targetX = mousePosition.X - (GridCellSize / 2);
         double targetY = mousePosition.Y - (GridCellSize / 2);
-        
+
         double snapThreshold = 48.0; // Distance in pixels to trigger a snap
         double bestDist = snapThreshold;
-        
+
         Point bestSnap = new Point(targetX, targetY);
         bool foundSnap = false;
 
@@ -216,54 +237,51 @@ public partial class MainWindow : Window
             foundSnap = true;
         }
 
-        // 2. Calculate the closest Tile Snap Point (useful for off-grid tile attachments)
-        foreach (var child in MapCanvas.Children)
+        // 2. Calculate the closest Tile Snap Point using our CACHE instead of UI controls!
+        foreach (var cachedPos in _cachedTilePositions)
         {
-            if (child is Image img)
+            double imgX = cachedPos.X;
+            double imgY = cachedPos.Y;
+
+            // OPTIMIZATION: Broad-phase overlap check. If this whole tile is way too far 
+            // from the mouse to possibly have a valid snap point, skip it entirely!
+            if (Math.Abs(imgX - targetX) > (GridCellSize + snapThreshold) ||
+                Math.Abs(imgY - targetY) > (GridCellSize + snapThreshold))
             {
-                double imgX = Canvas.GetLeft(img);
-                double imgY = Canvas.GetTop(img);
+                continue;
+            }
 
-                // OPTIMIZATION: Broad-phase overlap check. If this whole tile is way too far 
-                // from the mouse to possibly have a valid snap point, skip it entirely!
-                if (Math.Abs(imgX - targetX) > (GridCellSize + snapThreshold) || 
-                    Math.Abs(imgY - targetY) > (GridCellSize + snapThreshold))
-                {
+            // Array of 8 connection points to snap to around the existing image
+            Point[] snapPoints = new Point[]
+            {
+            new Point(imgX - GridCellSize, imgY),               // Left
+            new Point(imgX + GridCellSize, imgY),               // Right
+            new Point(imgX, imgY - GridCellSize),               // Top
+            new Point(imgX, imgY + GridCellSize),               // Bottom
+            new Point(imgX - GridCellSize, imgY - GridCellSize), // Top-Left
+            new Point(imgX + GridCellSize, imgY - GridCellSize), // Top-Right
+            new Point(imgX - GridCellSize, imgY + GridCellSize), // Bottom-Left
+            new Point(imgX + GridCellSize, imgY + GridCellSize)  // Bottom-Right
+            };
+
+            foreach (var sp in snapPoints)
+            {
+                // Bound-check for canvas edges
+                if (sp.X < 0 || sp.Y < 0 || sp.X > maxGridX || sp.Y > maxGridY)
                     continue;
-                }
 
-                // Array of 8 connection points to snap to around the existing image
-                Point[] snapPoints = new Point[]
+                double dist = Math.Sqrt(Math.Pow(targetX - sp.X, 2) + Math.Pow(targetY - sp.Y, 2));
+                if (dist < bestDist)
                 {
-                    new Point(imgX - GridCellSize, imgY),               // Left
-                    new Point(imgX + GridCellSize, imgY),               // Right
-                    new Point(imgX, imgY - GridCellSize),               // Top
-                    new Point(imgX, imgY + GridCellSize),               // Bottom
-                    new Point(imgX - GridCellSize, imgY - GridCellSize), // Top-Left
-                    new Point(imgX + GridCellSize, imgY - GridCellSize), // Top-Right
-                    new Point(imgX - GridCellSize, imgY + GridCellSize), // Bottom-Left
-                    new Point(imgX + GridCellSize, imgY + GridCellSize)  // Bottom-Right
-                };
+                    bestDist = dist;
+                    bestSnap = sp;
+                    foundSnap = true;
 
-                foreach (var sp in snapPoints)
-                {
-                    // Bound-check for canvas edges
-                    if (sp.X < 0 || sp.Y < 0 || sp.X > maxGridX || sp.Y > maxGridY)
-                        continue;
-
-                    double dist = Math.Sqrt(Math.Pow(targetX - sp.X, 2) + Math.Pow(targetY - sp.Y, 2));
-                    if (dist < bestDist)
+                    // OPTIMIZATION: If we hit exactly 0 (or almost 0), we can't find a better snap, 
+                    // so return immediately rather than checking all other tiles.
+                    if (bestDist < 1.0)
                     {
-                        bestDist = dist;
-                        bestSnap = sp;
-                        foundSnap = true;
-                        
-                        // OPTIMIZATION: If we hit exactly 0 (or almost 0), we can't find a better snap, 
-                        // so return immediately rather than checking all other tiles.
-                        if (bestDist < 1.0) 
-                        {
-                            return bestSnap;
-                        }
+                        return bestSnap;
                     }
                 }
             }
@@ -283,21 +301,32 @@ public partial class MainWindow : Window
         }
 
         e.DragEffects = DragDropEffects.Copy;
-        
+
         var position = e.GetPosition(MapCanvas);
         var snappedPosition = CalculateDropPosition(position);
 
-        // Move the highlight rectangle
-        Canvas.SetLeft(DragHighlight, snappedPosition.X);
-        Canvas.SetTop(DragHighlight, snappedPosition.Y);
-        
+        // THE FIX: Only update the UI if the snapped position actually changed!
+        if (snappedPosition == _lastSnappedPosition)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        // Record the new position so we don't update it again until it changes
+        _lastSnappedPosition = snappedPosition;
+
+        if (DragHighlight.RenderTransform is TranslateTransform transform)
+        {
+            transform.X = snappedPosition.X;
+            transform.Y = snappedPosition.Y;
+        }
+
         if (!DragHighlight.IsVisible)
         {
             DragHighlight.IsVisible = true;
         }
-        
-        // Prevent event bubbling that can trigger the Leave event unintentionally
-        e.Handled = true; 
+
+        e.Handled = true;
     }
 
     private void OnCanvasDragLeave(object? sender, RoutedEventArgs e)
