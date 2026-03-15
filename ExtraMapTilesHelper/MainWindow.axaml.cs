@@ -32,7 +32,7 @@ public partial class MainWindow : Window
 
     // --- NEW: DRAG AND DROP CACHE ---
     private Point _lastSnappedPosition = new Point(-1000, -1000);
-    private readonly System.Collections.Generic.Dictionary<(int X, int Y), System.Collections.Generic.List<Point>> _spatialHash = new();
+    private readonly System.Collections.Generic.Dictionary<(int X, int Y), System.Collections.Generic.List<Avalonia.Rect>> _spatialHash = new();
     private Point _lastRawMousePosition = new Point(-1000, -1000);
 
     private void OnMainWindowLoaded(object? sender, RoutedEventArgs e)
@@ -195,31 +195,30 @@ public partial class MainWindow : Window
     private void OnCanvasDragEnter(object? sender, DragEventArgs e)
     {
         _lastSnappedPosition = new Point(-1000, -1000);
-
-        // 1. Clear the spatial hash
         _spatialHash.Clear();
 
-        // 2. Sort every tile into its mathematical bucket
         foreach (var child in MapCanvas.Children)
         {
-            if (child is Grid grid && grid.Name != "DragHighlight")
+            // THE FIX: Look for anything with a TextureItem tag, instead of strictly a Grid!
+            if (child is Control ctrl && ctrl.Tag is TextureItem)
             {
-                double tileX = Canvas.GetLeft(grid);
-                double tileY = Canvas.GetTop(grid);
+                double tileX = Canvas.GetLeft(ctrl);
+                double tileY = Canvas.GetTop(ctrl);
 
-                // Calculate which bucket this tile belongs in
+                // Fallback to GridCellSize if Width/Height aren't explicitly set
+                double tileW = double.IsNaN(ctrl.Width) ? GridCellSize : ctrl.Width;
+                double tileH = double.IsNaN(ctrl.Height) ? GridCellSize : ctrl.Height;
+
                 int bucketX = (int)(tileX / GridCellSize);
                 int bucketY = (int)(tileY / GridCellSize);
                 var bucketKey = (bucketX, bucketY);
 
-                // If this bucket doesn't exist yet, create it
                 if (!_spatialHash.ContainsKey(bucketKey))
                 {
-                    _spatialHash[bucketKey] = new System.Collections.Generic.List<Point>();
+                    _spatialHash[bucketKey] = new System.Collections.Generic.List<Avalonia.Rect>();
                 }
 
-                // Add the tile to its designated bucket
-                _spatialHash[bucketKey].Add(new Point(tileX, tileY));
+                _spatialHash[bucketKey].Add(new Avalonia.Rect(tileX, tileY, tileW, tileH));
             }
         }
     }
@@ -258,35 +257,39 @@ public partial class MainWindow : Window
         int mouseBucketX = (int)(targetX / GridCellSize);
         int mouseBucketY = (int)(targetY / GridCellSize);
 
-        // 2. Only check the mouse's bucket and the immediate neighbors (a 5x5 chunk area)
+        // 2. Calculate the closest Tile Snap Point using the true bounding boxes
         for (int bx = mouseBucketX - 2; bx <= mouseBucketX + 2; bx++)
         {
             for (int by = mouseBucketY - 2; by <= mouseBucketY + 2; by++)
             {
-                // Instantly grab the tiles in this chunk. If the chunk is empty, skip instantly!
                 if (_spatialHash.TryGetValue((bx, by), out var tilesInBucket))
                 {
-                    foreach (var cachedPos in tilesInBucket)
+                    foreach (var cachedRect in tilesInBucket)
                     {
-                        double imgX = cachedPos.X;
-                        double imgY = cachedPos.Y;
+                        double imgX = cachedRect.X;
+                        double imgY = cachedRect.Y;
+                        double imgW = cachedRect.Width;
+                        double imgH = cachedRect.Height;
 
-                        if (Math.Abs(imgX - targetX) > (GridCellSize + snapThreshold) ||
-                            Math.Abs(imgY - targetY) > (GridCellSize + snapThreshold))
+                        // Broad-phase using true sizes
+                        if (Math.Abs(imgX - targetX) > (Math.Max(GridCellSize, imgW) + snapThreshold) ||
+                            Math.Abs(imgY - targetY) > (Math.Max(GridCellSize, imgH) + snapThreshold))
                         {
                             continue;
                         }
 
+                        // 9 Magnetic Points: The 8 edges + the exact overlap center!
                         Point[] snapPoints = new Point[]
                         {
                             new Point(imgX - GridCellSize, imgY),
-                            new Point(imgX + GridCellSize, imgY),
+                            new Point(imgX + imgW, imgY),
                             new Point(imgX, imgY - GridCellSize),
-                            new Point(imgX, imgY + GridCellSize),
+                            new Point(imgX, imgY + imgH),
                             new Point(imgX - GridCellSize, imgY - GridCellSize),
-                            new Point(imgX + GridCellSize, imgY - GridCellSize),
-                            new Point(imgX - GridCellSize, imgY + GridCellSize),
-                            new Point(imgX + GridCellSize, imgY + GridCellSize)
+                            new Point(imgX + imgW, imgY - GridCellSize),
+                            new Point(imgX - GridCellSize, imgY + imgH),
+                            new Point(imgX + imgW, imgY + imgH),
+                            new Point(imgX, imgY) // NEW: Snap directly on top of the tile!
                         };
 
                         foreach (var sp in snapPoints)
@@ -295,7 +298,10 @@ public partial class MainWindow : Window
 
                             double distSq = Math.Pow(targetX - sp.X, 2) + Math.Pow(targetY - sp.Y, 2);
 
-                            if (distSq < bestDistSq)
+                            // THE FIX: We add a +25 buffer to bestDistSq. 
+                            // This means if a tile edge is even *slightly* further away than an empty grid line, 
+                            // the tile still wins the tug-of-war!
+                            if (distSq <= bestDistSq + 25)
                             {
                                 bestDistSq = distSq;
                                 bestSnap = sp;
