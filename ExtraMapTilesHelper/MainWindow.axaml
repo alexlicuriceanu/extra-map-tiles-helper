@@ -118,6 +118,16 @@
                         </VisualBrush>
                     </Canvas.Background>
 
+                    <!-- Highlight Rectangle for Drag & Drop -->
+                    <Rectangle x:Name="DragHighlight"
+                               Width="256" Height="256"
+                               Fill="#66a6e3a1"
+                               Stroke="#a6e3a1"
+                               StrokeThickness="2"
+                               IsHitTestVisible="False"
+                               IsVisible="False"
+                               ZIndex="90"/>
+
                     <Ellipse Canvas.Left="4086"
                              Canvas.Top="4086"
                              Width="20"
@@ -126,7 +136,7 @@
                              Stroke="#11111b"
                              StrokeThickness="2"
                              ZIndex="100"
-                             ToolTip.Tip="In-game map tile anchor point; top left corner of tile at offset (0, 0)"/>
+                             ToolTip.Tip="In-game map tile anchor point; top left corner of the tile at offset (0, 0)"/>
                 </Canvas>
             </LayoutTransformControl>
 

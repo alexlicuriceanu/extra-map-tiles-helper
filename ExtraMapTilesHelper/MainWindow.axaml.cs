@@ -231,6 +231,50 @@ public partial class MainWindow : Window
         TextureTree.ItemsSource = Dictionaries;
 
         AddHandler(DragDrop.DropEvent, OnCanvasDrop);
+        AddHandler(DragDrop.DragOverEvent, OnCanvasDragOver);
+        AddHandler(DragDrop.DragLeaveEvent, OnCanvasDragLeave);
+    }
+
+    private void OnCanvasDragOver(object? sender, DragEventArgs e)
+    {
+        if (!e.Data.Contains("DraggedTexture"))
+        {
+            e.DragEffects = DragDropEffects.None;
+            DragHighlight.IsVisible = false;
+            return;
+        }
+
+        e.DragEffects = DragDropEffects.Copy;
+        
+        var position = e.GetPosition(MapCanvas);
+        
+        // Calculate grid snap (same logic as drop)
+        int column = (int)Math.Floor(position.X / GridCellSize);
+        int row = (int)Math.Floor(position.Y / GridCellSize);
+
+        // Clamp to map bounds
+        int maxColumn = (int)(MapCanvas.Width / GridCellSize) - 1;
+        int maxRow = (int)(MapCanvas.Height / GridCellSize) - 1;
+
+        column = Math.Clamp(column, 0, maxColumn);
+        row = Math.Clamp(row, 0, maxRow);
+
+        double snappedX = column * GridCellSize;
+        double snappedY = row * GridCellSize;
+
+        // Move the highlight rectangle
+        Canvas.SetLeft(DragHighlight, snappedX);
+        Canvas.SetTop(DragHighlight, snappedY);
+        
+        if (!DragHighlight.IsVisible)
+        {
+            DragHighlight.IsVisible = true;
+        }
+    }
+
+    private void OnCanvasDragLeave(object? sender, RoutedEventArgs e)
+    {
+        DragHighlight.IsVisible = false;
     }
 
     private async void OnImportClicked(object? sender, RoutedEventArgs e)
@@ -300,6 +344,9 @@ public partial class MainWindow : Window
     // 2. Drop the tile on the grid
     private void OnCanvasDrop(object? sender, DragEventArgs e)
     {
+        // Hide the highlight immediately
+        DragHighlight.IsVisible = false;
+
         if (e.Data.Contains("DraggedTexture") && e.Data.Get("DraggedTexture") is TextureItem item)
         {
             var dropPosition = e.GetPosition(MapCanvas);
