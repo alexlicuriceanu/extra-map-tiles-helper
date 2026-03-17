@@ -101,12 +101,11 @@
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center">
                 <Canvas x:Name="MapCanvas"
-                        Width="4096"
-                        Height="4096"
+                        Width="100000"
+                        Height="100000"
                         DragDrop.AllowDrop="True"
                         PointerWheelChanged="OnMapPointerWheelChanged"
-                        RenderOptions.BitmapInterpolationMode="LowQuality"
-                        ClipToBounds="True">
+                        RenderOptions.BitmapInterpolationMode="LowQuality">
                     
                     <Canvas.Background>
                         <VisualBrush TileMode="Tile" SourceRect="0,0,256,256" DestinationRect="0,0,256,256">
@@ -126,8 +125,8 @@
                                Stroke="#e3a826" StrokeThickness="3"
                                IsHitTestVisible="False" IsVisible="False" ZIndex="95" />
 
-                    <Ellipse Canvas.Left="2038"
-                             Canvas.Top="2038"
+                    <Ellipse Canvas.Left="49910"
+                             Canvas.Top="49910"
                              Width="20"
                              Height="20" 
                              Fill="#ff0000"

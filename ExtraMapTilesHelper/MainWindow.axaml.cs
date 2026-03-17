@@ -54,8 +54,9 @@ public partial class MainWindow : Window
 
     private void LoadDefaultTiles()
     {
-        double anchorX = 2048;
-        double anchorY = 2048;
+        // Shift anchors to the new exact grid center
+        double anchorX = 49920;
+        double anchorY = 49920;
 
         for (int x = 0; x < 3; x++)
         {
@@ -120,13 +121,14 @@ public partial class MainWindow : Window
 
     private void CenterViewOnMap()
     {
-        double scaledWidth = MapCanvas.Width * _zoomLevel;
-        double scaledHeight = MapCanvas.Height * _zoomLevel;
+        // The logical center point where the red dot is
+        double mapCenterX = 49920 * _zoomLevel; 
+        double mapCenterY = 49920 * _zoomLevel;
 
-        double centerX = (scaledWidth - MapScrollViewer.Viewport.Width) / 2;
-        double centerY = (scaledHeight - MapScrollViewer.Viewport.Height) / 2;
+        double viewportHalfWidth = MapScrollViewer.Viewport.Width / 2;
+        double viewportHalfHeight = MapScrollViewer.Viewport.Height / 2;
 
-        MapScrollViewer.Offset = new Avalonia.Vector(centerX, centerY);
+        MapScrollViewer.Offset = new Avalonia.Vector(mapCenterX - viewportHalfWidth, mapCenterY - viewportHalfHeight);
     }
 
     private void ZoomAtViewportPoint(double zoomFactor, Avalonia.Point viewportPoint)
@@ -323,10 +325,9 @@ public partial class MainWindow : Window
         double gridX = Math.Round(targetX / GridCellSize) * GridCellSize;
         double gridY = Math.Round(targetY / GridCellSize) * GridCellSize;
 
-        double maxGridX = MapCanvas.Width - GridCellSize;
-        double maxGridY = MapCanvas.Height - GridCellSize;
-        gridX = Math.Clamp(gridX, 0, maxGridX);
-        gridY = Math.Clamp(gridY, 0, maxGridY);
+        // REmoved the maxGrid clamping here to support infinite map space
+        gridX = Math.Max(0, gridX);
+        gridY = Math.Max(0, gridY);
 
         double distToGridSq = Math.Pow(targetX - gridX, 2) + Math.Pow(targetY - gridY, 2);
         if (distToGridSq < bestDistSq)
@@ -378,7 +379,7 @@ public partial class MainWindow : Window
 
                         foreach (var sp in snapPoints)
                         {
-                            if (sp.X < 0 || sp.Y < 0 || sp.X > maxGridX || sp.Y > maxGridY) continue;
+                            if (sp.X < 0 || sp.Y < 0) continue; // Only check negative bounds now
 
                             double distSq = Math.Pow(targetX - sp.X, 2) + Math.Pow(targetY - sp.Y, 2);
 
