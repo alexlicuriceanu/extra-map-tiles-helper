@@ -25,7 +25,14 @@ public static class TempWorkspace
     {
         if (Directory.Exists(RootPath))
         {
-            try { Directory.Delete(RootPath, true); } catch { /* Ignore locked files */ }
+            try
+            {
+                Directory.Delete(RootPath, true);
+            }
+            catch
+            {
+                /* Ignore locked files */
+            }
         }
     }
 }

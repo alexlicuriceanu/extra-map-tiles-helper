@@ -84,7 +84,7 @@ public partial class MainWindow : Window
                 }
                 catch
                 {
-                    // Ignore missing files or log them
+                    
                 }
             }
         }
@@ -239,11 +239,15 @@ public partial class MainWindow : Window
     }
 
     public ObservableCollection<DictionaryItem> Dictionaries { get; } = new();
+    public ObservableCollection<PlacedTile> PlacedTiles { get; } = new();
 
     public MainWindow()
     {
         InitializeComponent();
         TextureTree.ItemsSource = Dictionaries;
+        
+        // Let the future right-side table know where to find the objects
+        PlacedTilesList.ItemsSource = PlacedTiles; 
 
         AddHandler(DragDrop.DropEvent, OnCanvasDrop);
         AddHandler(DragDrop.DragOverEvent, OnCanvasDragOver);
@@ -533,6 +537,14 @@ public partial class MainWindow : Window
             Canvas.SetTop(mapImage, finalPosition.Y);
 
             MapCanvas.Children.Add(mapImage);
+
+            // Create and store the data structure representation
+            PlacedTiles.Add(new PlacedTile
+            {
+                Texture = item,
+                X = finalPosition.X,
+                Y = finalPosition.Y
+            });
         }
     }
 

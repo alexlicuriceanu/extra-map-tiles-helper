@@ -3,8 +3,8 @@
         xmlns:models="using:ExtraMapTilesHelper.Models"
         x:Class="ExtraMapTilesHelper.MainWindow"
         Title="Extra Map Tiles Helper"
-        Background="#1e1e2e"
-        Foreground="#cdd6f4"
+        Background="#1e1e1e"
+        Foreground="#cccccc"
         FontFamily="Segoe UI Variable, Segoe UI"
         FontSize="12"
         MinWidth="512" MinHeight="360"
@@ -15,7 +15,7 @@
 
 	<LayoutTransformControl x:Name="RootTransform">
 	<DockPanel>
-		<Menu DockPanel.Dock="Top" Background="#181825" Foreground="#cdd6f4">
+		<Menu DockPanel.Dock="Top" Background="#2d2d30" Foreground="#cccccc">
 			<MenuItem Header="_File">
 				<MenuItem x:Name="ImportMenuItem" Header="_Import YTDs" Click="OnImportClicked"/>
 			    
@@ -61,7 +61,7 @@
 
 		<Grid ColumnDefinitions="300, *, 250">
 
-			<Border Grid.Column="0" Background="#181825" BorderBrush="#313244" BorderThickness="0,0,1,0">
+			<Border Grid.Column="0" Background="#252526" BorderBrush="#3e3e42" BorderThickness="0,0,1,0">
 				<TreeView x:Name="TextureTree" Background="Transparent" BorderThickness="0" Margin="10">
                     
                     <TreeView.Styles>
@@ -73,7 +73,7 @@
                     <TreeView.DataTemplates>
                         <TreeDataTemplate DataType="models:DictionaryItem" ItemsSource="{Binding Textures}">
                             <Border Background="Transparent" PointerPressed="OnDictionaryPointerPressed">
-                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#89b4fa" Padding="0,5"/>
+                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#4fc1ff" Padding="0,5"/>
                             </Border>
                         </TreeDataTemplate>
                         
@@ -111,30 +111,54 @@
                     <Canvas.Background>
                         <VisualBrush TileMode="Tile" SourceRect="0,0,256,256" DestinationRect="0,0,256,256">
                             <VisualBrush.Visual>
-                                <Rectangle Width="256" Height="256" Stroke="#313244" StrokeThickness="1" Fill="#11111b" IsHitTestVisible="False"/>
+                                <Rectangle Width="256" Height="256" Stroke="#3e3e42" StrokeThickness="1" Fill="#121212" IsHitTestVisible="False"/>
                             </VisualBrush.Visual>
                         </VisualBrush>
                     </Canvas.Background>
 
                     <Rectangle x:Name="DragHighlight"
                                Width="256" Height="256"
-                               Fill="#66a6e3a1" Stroke="#a6e3a1" StrokeThickness="2"
+                               Fill="#66007acc" Stroke="#007acc" StrokeThickness="2"
                                IsHitTestVisible="False" IsVisible="False" ZIndex="90" />
 
                     <Ellipse Canvas.Left="2038"
                              Canvas.Top="2038"
                              Width="20"
                              Height="20" 
-                             Fill="#f38ba8"
-                             Stroke="#11111b"
+                             Fill="#ff0000"
+                             Stroke="#1e1e1e"
                              StrokeThickness="2"
                              ZIndex="100"
-                             ToolTip.Tip="Center Anchor Point (2048, 2048)"/>
+                             ToolTip.Tip="In-game logical center point: top left corner of tile at offsets (0, 0)"/>
                 </Canvas>
             </LayoutTransformControl>
 
-                    </ScrollViewer>
-                </Grid>
-            </DockPanel>
-            </LayoutTransformControl>
-        </Window>
+            </ScrollViewer>
+
+            <Border Grid.Column="2" Background="#252526" BorderBrush="#3e3e42" BorderThickness="1,0,0,0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Placed Tiles Queue" FontWeight="Bold" Background="#2d2d30" Foreground="#cccccc" Padding="10"/>
+                    <ListBox x:Name="PlacedTilesList" Background="Transparent" Foreground="#cccccc" BorderThickness="0" Margin="0,5,0,0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="models:PlacedTile">
+                                <StackPanel Margin="0,0,0,5">
+                                    <TextBlock Text="{Binding TxdName}" FontWeight="Bold" Foreground="#4fc1ff"/>
+                                    <TextBlock Text="{Binding YtdName, StringFormat='YTD: {0}'}" FontSize="11" Opacity="0.8"/>
+                                    <TextBlock FontSize="11" Opacity="0.8">
+                                        <Run Text="Pos: ("/>
+                                        <Run Text="{Binding X}"/>
+                                        <Run Text=", "/>
+                                        <Run Text="{Binding Y}"/>
+                                        <Run Text=")"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+        </Grid>
+	</DockPanel>
+	</LayoutTransformControl>
+</Window>
