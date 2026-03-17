@@ -138,9 +138,27 @@
             <Border Grid.Column="2" Background="#252526" BorderBrush="#3e3e42" BorderThickness="1,0,0,0">
                 <Grid RowDefinitions="*,*">
                     
-                    <!-- Upper half empty for now -->
+                    <!-- Upper half: Selected Tile Properties -->
                     <Border Grid.Row="0" BorderBrush="#3e3e42" BorderThickness="0,0,0,1" Background="#1e1e1e">
-                        <!-- Empty for now -->
+                        <DockPanel x:Name="TileEditorPanel" IsVisible="False" Margin="10">
+                            <TextBlock DockPanel.Dock="Top" Text="Tile Properties" FontWeight="Bold" Foreground="#cccccc" Margin="0,0,0,10"/>
+                            
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="0,0,0,15">
+                                <Image x:Name="SelectedTilePreview" Width="64" Height="64" Stretch="Uniform"/>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock x:Name="SelectedTileName" FontWeight="Bold" Foreground="#4fc1ff"/>
+                                    <TextBlock x:Name="SelectedTileYtd" FontSize="11" Opacity="0.8"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <Grid RowDefinitions="Auto, Auto" ColumnDefinitions="Auto, *" DockPanel.Dock="Top">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                                <NumericUpDown x:Name="EditXBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,10" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
+                                
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Y:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <NumericUpDown x:Name="EditYBox" Grid.Row="1" Grid.Column="1" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
+                            </Grid>
+                        </DockPanel>
                     </Border>
 
                     <!-- Lower half for Placed Tiles Queue -->
@@ -148,7 +166,7 @@
                         <TextBlock DockPanel.Dock="Top" Text="Placed Tiles Queue" FontWeight="Bold" Background="#2d2d30" Foreground="#cccccc" Padding="10"/>
                         
                         <!-- ListBox inherently is scrollable when bounded inside a container -->
-                        <ListBox x:Name="PlacedTilesList" Background="Transparent" Foreground="#cccccc" BorderThickness="0" Margin="0,5,0,0">
+                        <ListBox x:Name="PlacedTilesList" Background="Transparent" Foreground="#cccccc" BorderThickness="0" Margin="0,5,0,0" SelectionChanged="OnPlacedTilesListSelectionChanged">
                             <ListBox.ItemTemplate>
                                 <DataTemplate DataType="models:PlacedTile">
                                     <StackPanel Margin="0,0,0,5">

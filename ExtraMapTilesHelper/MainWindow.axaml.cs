@@ -241,6 +241,10 @@ public partial class MainWindow : Window
     public ObservableCollection<DictionaryItem> Dictionaries { get; } = new();
     public ObservableCollection<PlacedTile> PlacedTiles { get; } = new();
 
+    private Image? _currentSelectedImage;
+    private PlacedTile? _currentSelectedTile;
+    private bool _isUpdatingBoxes = false;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -265,7 +269,7 @@ public partial class MainWindow : Window
         foreach (var child in MapCanvas.Children)
         {
             // THE FIX: Look for anything with a TextureItem tag, instead of strictly a Grid!
-            if (child is Control ctrl && ctrl.Tag is TextureItem)
+            if (child is Control ctrl && (ctrl.Tag is TextureItem || ctrl.Tag is PlacedTile))
             {
                 double tileX = Canvas.GetLeft(ctrl);
                 double tileY = Canvas.GetTop(ctrl);
@@ -524,27 +528,96 @@ public partial class MainWindow : Window
                 canvasBitmap = Avalonia.Media.Imaging.Bitmap.DecodeToWidth(stream, 1024);
             }
 
+            // Create and store the data structure representation
+            var placedTile = new PlacedTile
+            {
+                Texture = item,
+                X = finalPosition.X,
+                Y = finalPosition.Y
+            };
+
             var mapImage = new Image
             {
                 Source = canvasBitmap,
                 Width = GridCellSize,
                 Height = GridCellSize,
                 Stretch = Stretch.Fill,
-                Tag = item
+                Tag = placedTile
             };
+
+            mapImage.PointerPressed += OnPlacedTilePointerPressed;
 
             Canvas.SetLeft(mapImage, finalPosition.X);
             Canvas.SetTop(mapImage, finalPosition.Y);
 
             MapCanvas.Children.Add(mapImage);
+            PlacedTiles.Add(placedTile);
+        }
+    }
 
-            // Create and store the data structure representation
-            PlacedTiles.Add(new PlacedTile
+    private void OnPlacedTilePointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        var point = e.GetCurrentPoint(sender as Control);
+        if (!point.Properties.IsLeftButtonPressed) return;
+
+        if (sender is Image mapImage && mapImage.Tag is PlacedTile tile)
+        {
+            SelectTile(tile, mapImage);
+            PlacedTilesList.SelectedItem = tile; // Sync with listbox selection
+            e.Handled = true;
+        }
+    }
+
+    private void OnPlacedTilesListSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (PlacedTilesList.SelectedItem is PlacedTile tile)
+        {
+            var mapImage = MapCanvas.Children.OfType<Image>().FirstOrDefault(img => img.Tag == tile);
+            if (mapImage != null)
             {
-                Texture = item,
-                X = finalPosition.X,
-                Y = finalPosition.Y
-            });
+                SelectTile(tile, mapImage);
+            }
+        }
+        else
+        {
+            TileEditorPanel.IsVisible = false;
+            _currentSelectedImage = null;
+            _currentSelectedTile = null;
+        }
+    }
+
+    private void SelectTile(PlacedTile tile, Image mapImage)
+    {
+        _currentSelectedImage = mapImage;
+        _currentSelectedTile = tile;
+
+        _isUpdatingBoxes = true;
+        
+        TileEditorPanel.IsVisible = true;
+        SelectedTileName.Text = tile.TxdName;
+        SelectedTileYtd.Text = $"YTD: {tile.YtdName}";
+        EditXBox.Value = (decimal)tile.X;
+        EditYBox.Value = (decimal)tile.Y;
+        SelectedTilePreview.Source = tile.Texture.Preview;
+        
+        _isUpdatingBoxes = false;
+    }
+
+    private void OnEditBoxValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (_isUpdatingBoxes || _currentSelectedTile == null || _currentSelectedImage == null || !e.NewValue.HasValue) return;
+
+        double newValue = (double)e.NewValue.Value;
+
+        if (sender == EditXBox)
+        {
+            _currentSelectedTile.X = newValue;
+            Canvas.SetLeft(_currentSelectedImage, newValue);
+        }
+        else if (sender == EditYBox)
+        {
+            _currentSelectedTile.Y = newValue;
+            Canvas.SetTop(_currentSelectedImage, newValue);
         }
     }
 
