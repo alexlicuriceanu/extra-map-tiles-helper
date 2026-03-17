@@ -121,6 +121,11 @@
                                Fill="#66007acc" Stroke="#007acc" StrokeThickness="2"
                                IsHitTestVisible="False" IsVisible="False" ZIndex="90" />
 
+                    <Rectangle x:Name="SelectionHighlight"
+                               Width="256" Height="256"
+                               Stroke="#e3a826" StrokeThickness="3"
+                               IsHitTestVisible="False" IsVisible="False" ZIndex="95" />
+
                     <Ellipse Canvas.Left="2038"
                              Canvas.Top="2038"
                              Width="20"

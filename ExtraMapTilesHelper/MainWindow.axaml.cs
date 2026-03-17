@@ -184,6 +184,12 @@ public partial class MainWindow : Window
     {
         var point = e.GetCurrentPoint(sender as Control);
 
+        // Allow clicking on the empty canvas to deselect any currently selected tile
+        if (point.Properties.IsLeftButtonPressed)
+        {
+            PlacedTilesList.SelectedItem = null;
+        }
+
         // 1. Only trigger if they clicked the Middle Mouse Button (Scroll Wheel)
         if (point.Properties.IsMiddleButtonPressed)
         {
@@ -583,6 +589,7 @@ public partial class MainWindow : Window
             TileEditorPanel.IsVisible = false;
             _currentSelectedImage = null;
             _currentSelectedTile = null;
+            SelectionHighlight.IsVisible = false;
         }
     }
 
@@ -600,6 +607,13 @@ public partial class MainWindow : Window
         EditYBox.Value = (decimal)tile.Y;
         SelectedTilePreview.Source = tile.Texture.Preview;
         
+        // Update selection highlight position and size
+        SelectionHighlight.Width = mapImage.Width;
+        SelectionHighlight.Height = mapImage.Height;
+        Canvas.SetLeft(SelectionHighlight, tile.X);
+        Canvas.SetTop(SelectionHighlight, tile.Y);
+        SelectionHighlight.IsVisible = true;
+
         _isUpdatingBoxes = false;
     }
 
@@ -613,11 +627,13 @@ public partial class MainWindow : Window
         {
             _currentSelectedTile.X = newValue;
             Canvas.SetLeft(_currentSelectedImage, newValue);
+            Canvas.SetLeft(SelectionHighlight, newValue);
         }
         else if (sender == EditYBox)
         {
             _currentSelectedTile.Y = newValue;
             Canvas.SetTop(_currentSelectedImage, newValue);
+            Canvas.SetTop(SelectionHighlight, newValue);
         }
     }
 
