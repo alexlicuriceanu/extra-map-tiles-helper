@@ -136,26 +136,37 @@
             </ScrollViewer>
 
             <Border Grid.Column="2" Background="#252526" BorderBrush="#3e3e42" BorderThickness="1,0,0,0">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="Placed Tiles Queue" FontWeight="Bold" Background="#2d2d30" Foreground="#cccccc" Padding="10"/>
-                    <ListBox x:Name="PlacedTilesList" Background="Transparent" Foreground="#cccccc" BorderThickness="0" Margin="0,5,0,0">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate DataType="models:PlacedTile">
-                                <StackPanel Margin="0,0,0,5">
-                                    <TextBlock Text="{Binding TxdName}" FontWeight="Bold" Foreground="#4fc1ff"/>
-                                    <TextBlock Text="{Binding YtdName, StringFormat='YTD: {0}'}" FontSize="11" Opacity="0.8"/>
-                                    <TextBlock FontSize="11" Opacity="0.8">
-                                        <Run Text="Pos: ("/>
-                                        <Run Text="{Binding X}"/>
-                                        <Run Text=", "/>
-                                        <Run Text="{Binding Y}"/>
-                                        <Run Text=")"/>
-                                    </TextBlock>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </DockPanel>
+                <Grid RowDefinitions="*,*">
+                    
+                    <!-- Upper half empty for now -->
+                    <Border Grid.Row="0" BorderBrush="#3e3e42" BorderThickness="0,0,0,1" Background="#1e1e1e">
+                        <!-- Empty for now -->
+                    </Border>
+
+                    <!-- Lower half for Placed Tiles Queue -->
+                    <DockPanel Grid.Row="1">
+                        <TextBlock DockPanel.Dock="Top" Text="Placed Tiles Queue" FontWeight="Bold" Background="#2d2d30" Foreground="#cccccc" Padding="10"/>
+                        
+                        <!-- ListBox inherently is scrollable when bounded inside a container -->
+                        <ListBox x:Name="PlacedTilesList" Background="Transparent" Foreground="#cccccc" BorderThickness="0" Margin="0,5,0,0">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="models:PlacedTile">
+                                    <StackPanel Margin="0,0,0,5">
+                                        <TextBlock Text="{Binding TxdName}" FontWeight="Bold" Foreground="#4fc1ff"/>
+                                        <TextBlock Text="{Binding YtdName, StringFormat='YTD: {0}'}" FontSize="11" Opacity="0.8"/>
+                                        <TextBlock FontSize="11" Opacity="0.8">
+                                            <Run Text="Pos: ("/>
+                                            <Run Text="{Binding X}"/>
+                                            <Run Text=", "/>
+                                            <Run Text="{Binding Y}"/>
+                                            <Run Text=")"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Grid>
             </Border>
 
         </Grid>

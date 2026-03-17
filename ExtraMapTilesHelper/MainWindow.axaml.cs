@@ -84,7 +84,7 @@ public partial class MainWindow : Window
                 }
                 catch
                 {
-                    
+
                 }
             }
         }
@@ -245,9 +245,9 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         TextureTree.ItemsSource = Dictionaries;
-        
+
         // Let the future right-side table know where to find the objects
-        PlacedTilesList.ItemsSource = PlacedTiles; 
+        PlacedTilesList.ItemsSource = PlacedTiles;
 
         AddHandler(DragDrop.DropEvent, OnCanvasDrop);
         AddHandler(DragDrop.DragOverEvent, OnCanvasDragOver);
@@ -377,7 +377,7 @@ public partial class MainWindow : Window
                                 bestSnap = sp;
                                 foundSnap = true;
 
-                                if (bestDistSq<1.0)
+                                if (bestDistSq < 1.0)
                                     return bestSnap;
                             }
                         }
