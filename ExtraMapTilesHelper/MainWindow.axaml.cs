@@ -321,6 +321,12 @@ public partial class MainWindow : Window
         double targetX = mousePosition.X - (GridCellSize / 2);
         double targetY = mousePosition.Y - (GridCellSize / 2);
 
+        double maxX = (double.IsNaN(MapCanvas.Width) ? 100000 : MapCanvas.Width) - GridCellSize;
+        double maxY = (double.IsNaN(MapCanvas.Height) ? 100000 : MapCanvas.Height) - GridCellSize;
+
+        targetX = Math.Clamp(targetX, 0, maxX);
+        targetY = Math.Clamp(targetY, 0, maxY);
+
         if (!_isSnappingEnabled)
         {
             return new Point(targetX, targetY);
@@ -337,9 +343,9 @@ public partial class MainWindow : Window
         double gridX = Math.Round(targetX / GridCellSize) * GridCellSize;
         double gridY = Math.Round(targetY / GridCellSize) * GridCellSize;
 
-        // REmoved the maxGrid clamping here to support infinite map space
-        gridX = Math.Max(0, gridX);
-        gridY = Math.Max(0, gridY);
+        // Clamp to Canvas Map Bounds
+        gridX = Math.Clamp(gridX, 0, maxX);
+        gridY = Math.Clamp(gridY, 0, maxY);
 
         double distToGridSq = Math.Pow(targetX - gridX, 2) + Math.Pow(targetY - gridY, 2);
         if (distToGridSq < bestDistSq)
@@ -391,7 +397,7 @@ public partial class MainWindow : Window
 
                         foreach (var sp in snapPoints)
                         {
-                            if (sp.X < 0 || sp.Y < 0) continue; // Only check negative bounds now
+                            if (sp.X < 0 || sp.Y < 0 || sp.X > maxX || sp.Y > maxY) continue; // Check bounds
 
                             double distSq = Math.Pow(targetX - sp.X, 2) + Math.Pow(targetY - sp.Y, 2);
 
@@ -407,7 +413,7 @@ public partial class MainWindow : Window
                                 if (bestDistSq < 1.0)
                                 {
                                     return bestSnap;
-                                }
+                                }   
                             }
                         }
                     }
@@ -606,7 +612,6 @@ public partial class MainWindow : Window
                 Width = GridCellSize,
                 Height = GridCellSize,
                 Stretch = Stretch.Fill,
-                ZIndex = 10, // <-- Added ZIndex (higher than default tiles' 5)
                 Tag = placedTile
             };
 

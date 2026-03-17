@@ -91,7 +91,7 @@
             </Border>
 
             <ScrollViewer x:Name="MapScrollViewer" Grid.Column="1"
-                      HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"
                       AllowAutoHide="False"
                       PointerPressed="OnMapPointerPressed"
                       PointerMoved="OnMapPointerMoved"
@@ -117,8 +117,8 @@
 
                     <Border x:Name="DragHighlight"
                             Width="256" Height="256"
-                            Background="Transparent" BorderBrush="#007acc" BorderThickness="2"
-                            IsHitTestVisible="False" IsVisible="False" ZIndex="90">
+                            Background="Transparent" BorderBrush="#e3a826" BorderThickness="3"
+                            IsHitTestVisible="False" IsVisible="False" ZIndex="98">
                         <Image x:Name="DragHighlightImage" Stretch="Fill" Opacity="0.6"/>
                     </Border>
 
