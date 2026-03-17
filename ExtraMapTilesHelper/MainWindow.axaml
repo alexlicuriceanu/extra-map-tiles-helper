@@ -115,10 +115,12 @@
                         </VisualBrush>
                     </Canvas.Background>
 
-                    <Rectangle x:Name="DragHighlight"
-                               Width="256" Height="256"
-                               Fill="#66007acc" Stroke="#007acc" StrokeThickness="2"
-                               IsHitTestVisible="False" IsVisible="False" ZIndex="90" />
+                    <Border x:Name="DragHighlight"
+                            Width="256" Height="256"
+                            Background="Transparent" BorderBrush="#007acc" BorderThickness="2"
+                            IsHitTestVisible="False" IsVisible="False" ZIndex="90">
+                        <Image x:Name="DragHighlightImage" Stretch="Fill" Opacity="0.6"/>
+                    </Border>
 
                     <Rectangle x:Name="SelectionHighlight"
                                Width="256" Height="256"

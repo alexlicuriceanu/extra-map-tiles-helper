@@ -278,15 +278,27 @@ public partial class MainWindow : Window
         _lastSnappedPosition = new Point(-1000, -1000);
         _spatialHash.Clear();
 
+        // --- NEW: Assign the visual preview source! ---
+        if (e.Data.Contains("DragImage") && e.Data.Get("DragImage") is Avalonia.Media.Imaging.Bitmap bmp)
+        {
+            DragHighlightImage.Source = bmp;
+        }
+        else if (e.Data.Contains("SourceImage") && e.Data.Get("SourceImage") is Image sourceImg)
+        {
+            DragHighlightImage.Source = sourceImg.Source;
+        }
+        else
+        {
+            DragHighlightImage.Source = null;
+        }
+
         foreach (var child in MapCanvas.Children)
         {
-            // THE FIX: Look for anything with a TextureItem tag, instead of strictly a Grid!
             if (child is Control ctrl && (ctrl.Tag is TextureItem || ctrl.Tag is PlacedTile))
             {
                 double tileX = Canvas.GetLeft(ctrl);
                 double tileY = Canvas.GetTop(ctrl);
 
-                // Fallback to GridCellSize if Width/Height aren't explicitly set
                 double tileW = double.IsNaN(ctrl.Width) ? GridCellSize : ctrl.Width;
                 double tileH = double.IsNaN(ctrl.Height) ? GridCellSize : ctrl.Height;
 
@@ -393,7 +405,9 @@ public partial class MainWindow : Window
                                 foundSnap = true;
 
                                 if (bestDistSq < 1.0)
+                                {
                                     return bestSnap;
+                                }
                             }
                         }
                     }
@@ -455,6 +469,7 @@ public partial class MainWindow : Window
         if (e.Source == MapCanvas)
         {
             DragHighlight.IsVisible = false;
+            DragHighlightImage.Source = null; // Clear memory reference
         }
     }
 
@@ -519,6 +534,15 @@ public partial class MainWindow : Window
         var dragData = new DataObject();
         dragData.Set("DraggedTexture", draggedItem);
 
+        // --- NEW: Decode lower res for drag visual ---
+        try
+        {
+            using var stream = System.IO.File.OpenRead(draggedItem.HighResFilePath);
+            var dragPreview = Avalonia.Media.Imaging.Bitmap.DecodeToWidth(stream, 256);
+            dragData.Set("DragImage", dragPreview);
+        }
+        catch { }
+
         await DragDrop.DoDragDrop(e, dragData, DragDropEffects.Copy);
     }
 
@@ -527,6 +551,7 @@ public partial class MainWindow : Window
     {
         // Hide the highlight immediately
         DragHighlight.IsVisible = false;
+        DragHighlightImage.Source = null;
 
         // A) Handle repositioning an already placed tile
         if (e.Data.Contains("MovePlacedTile") && e.Data.Get("MovePlacedTile") is PlacedTile moveTile && e.Data.Get("SourceImage") is Image sourceImage)
@@ -581,6 +606,7 @@ public partial class MainWindow : Window
                 Width = GridCellSize,
                 Height = GridCellSize,
                 Stretch = Stretch.Fill,
+                ZIndex = 10, // <-- Added ZIndex (higher than default tiles' 5)
                 Tag = placedTile
             };
 
