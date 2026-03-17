@@ -250,6 +250,10 @@ public partial class MainWindow : Window
     private Image? _currentSelectedImage;
     private PlacedTile? _currentSelectedTile;
     private bool _isUpdatingBoxes = false;
+    
+    // --- NEW: Grid Tile Dragging Trackers ---
+    private Point? _tileDragStartPoint;
+    private bool _isDraggingTile = false;
 
     public MainWindow()
     {
@@ -401,14 +405,15 @@ public partial class MainWindow : Window
 
     private void OnCanvasDragOver(object? sender, DragEventArgs e)
     {
-        if (!e.Data.Contains("DraggedTexture"))
+        // 1. Differentiate between a new texture from the sidebar and a PlacedTile being moved
+        if (!e.Data.Contains("DraggedTexture") && !e.Data.Contains("MovePlacedTile"))
         {
             e.DragEffects = DragDropEffects.None;
             DragHighlight.IsVisible = false;
             return;
         }
 
-        e.DragEffects = DragDropEffects.Copy;
+        e.DragEffects = e.Data.Contains("MovePlacedTile") ? DragDropEffects.Move : DragDropEffects.Copy;
         var position = e.GetPosition(MapCanvas);
 
         // --- NEW: THE THROTTLE ---
@@ -522,7 +527,34 @@ public partial class MainWindow : Window
         // Hide the highlight immediately
         DragHighlight.IsVisible = false;
 
-        if (e.Data.Contains("DraggedTexture") && e.Data.Get("DraggedTexture") is TextureItem item)
+        // A) Handle repositioning an already placed tile
+        if (e.Data.Contains("MovePlacedTile") && e.Data.Get("MovePlacedTile") is PlacedTile moveTile && e.Data.Get("SourceImage") is Image sourceImage)
+        {
+            var dropPosition = e.GetPosition(MapCanvas);
+            var finalPosition = CalculateDropPosition(dropPosition);
+
+            // Update the underlying data
+            moveTile.X = finalPosition.X;
+            moveTile.Y = finalPosition.Y;
+
+            // Move the existing Canvas Image
+            Canvas.SetLeft(sourceImage, finalPosition.X);
+            Canvas.SetTop(sourceImage, finalPosition.Y);
+
+            // Keep the properties panel in sync if it's currently selected
+            if (_currentSelectedTile == moveTile)
+            {
+                Canvas.SetLeft(SelectionHighlight, finalPosition.X);
+                Canvas.SetTop(SelectionHighlight, finalPosition.Y);
+
+                _isUpdatingBoxes = true;
+                EditXBox.Value = (decimal)finalPosition.X;
+                EditYBox.Value = (decimal)finalPosition.Y;
+                _isUpdatingBoxes = false;
+            }
+        }
+        // B) Handle placing a completely new tile from the sidebar
+        else if (e.Data.Contains("DraggedTexture") && e.Data.Get("DraggedTexture") is TextureItem item)
         {
             var dropPosition = e.GetPosition(MapCanvas);
             var finalPosition = CalculateDropPosition(dropPosition);
@@ -552,6 +584,8 @@ public partial class MainWindow : Window
             };
 
             mapImage.PointerPressed += OnPlacedTilePointerPressed;
+            mapImage.PointerMoved += OnPlacedTilePointerMoved;
+            mapImage.PointerReleased += OnPlacedTilePointerReleased;
 
             Canvas.SetLeft(mapImage, finalPosition.X);
             Canvas.SetTop(mapImage, finalPosition.Y);
@@ -561,7 +595,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnPlacedTilePointerPressed(object? sender, PointerPressedEventArgs e)
+    private async void OnPlacedTilePointerPressed(object? sender, PointerPressedEventArgs e)
     {
         var point = e.GetCurrentPoint(sender as Control);
         if (!point.Properties.IsLeftButtonPressed) return;
@@ -570,8 +604,52 @@ public partial class MainWindow : Window
         {
             SelectTile(tile, mapImage);
             PlacedTilesList.SelectedItem = tile; // Sync with listbox selection
+            
+            // Record exactly where the mouse started the click instead of dragging immediately
+            _tileDragStartPoint = e.GetPosition(MapCanvas);
             e.Handled = true;
         }
+    }
+
+    private async void OnPlacedTilePointerMoved(object? sender, PointerEventArgs e)
+    {
+        // If we haven't clicked a tile, or we are already dragging, do nothing
+        if (_tileDragStartPoint == null || _isDraggingTile) return;
+
+        var point = e.GetCurrentPoint(sender as Control);
+        if (!point.Properties.IsLeftButtonPressed)
+        {
+            _tileDragStartPoint = null;
+            return;
+        }
+
+        var currentPosition = e.GetPosition(MapCanvas);
+        var distanceSq = Math.Pow(currentPosition.X - _tileDragStartPoint.Value.X, 2) + Math.Pow(currentPosition.Y - _tileDragStartPoint.Value.Y, 2);
+
+        // Require at least a 3-pixel movement boundary (9 squared) before starting a drag
+        if (distanceSq > 9)
+        {
+            if (sender is Image mapImage && mapImage.Tag is PlacedTile tile)
+            {
+                _isDraggingTile = true;
+
+                var dragData = new DataObject();
+                dragData.Set("MovePlacedTile", tile);
+                dragData.Set("SourceImage", mapImage);
+
+                await DragDrop.DoDragDrop(e, dragData, DragDropEffects.Move);
+
+                // Reset states after drag completes
+                _isDraggingTile = false;
+                _tileDragStartPoint = null;
+            }
+        }
+    }
+
+    private void OnPlacedTilePointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        // Cancel the potential drag if they successfully let go without moving past the threshold
+        _tileDragStartPoint = null;
     }
 
     private void OnPlacedTilesListSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -599,14 +677,14 @@ public partial class MainWindow : Window
         _currentSelectedTile = tile;
 
         _isUpdatingBoxes = true;
-        
+
         TileEditorPanel.IsVisible = true;
         SelectedTileName.Text = tile.TxdName;
         SelectedTileYtd.Text = $"YTD: {tile.YtdName}";
         EditXBox.Value = (decimal)tile.X;
         EditYBox.Value = (decimal)tile.Y;
         SelectedTilePreview.Source = tile.Texture.Preview;
-        
+
         // Update selection highlight position and size
         SelectionHighlight.Width = mapImage.Width;
         SelectionHighlight.Height = mapImage.Height;
