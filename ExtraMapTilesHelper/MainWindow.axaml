@@ -52,6 +52,10 @@
 					</MenuItem.Header>
 				</MenuItem>
 			</MenuItem>
+            
+			<MenuItem Header="_Options">
+				<MenuItem Header="Show Default Map" ToggleType="CheckBox" IsChecked="True" Click="OnToggleDefaultTilesClicked"/>
+			</MenuItem>
 		</Menu>
 
 		<Grid ColumnDefinitions="300, *, 250">

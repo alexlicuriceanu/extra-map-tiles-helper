@@ -34,6 +34,7 @@ public partial class MainWindow : Window
     private Point _lastSnappedPosition = new Point(-1000, -1000);
     private readonly System.Collections.Generic.Dictionary<(int X, int Y), System.Collections.Generic.List<Avalonia.Rect>> _spatialHash = new();
     private Point _lastRawMousePosition = new Point(-1000, -1000);
+    private readonly System.Collections.Generic.List<Image> _defaultTiles = new();
 
     private void OnMainWindowLoaded(object? sender, RoutedEventArgs e)
     {
@@ -47,6 +48,57 @@ public partial class MainWindow : Window
         }
 
         ResetView();
+        LoadDefaultTiles();
+    }
+
+    private void LoadDefaultTiles()
+    {
+        double anchorX = 2048;
+        double anchorY = 2048;
+
+        for (int x = 0; x < 3; x++)
+        {
+            for (int y = 0; y < 2; y++)
+            {
+                string assetUri = $"avares://ExtraMapTilesHelper/Assets/minimap_sea_{x}_{y}.png";
+                try
+                {
+                    using var stream = Avalonia.Platform.AssetLoader.Open(new Uri(assetUri));
+                    var bitmap = new Avalonia.Media.Imaging.Bitmap(stream);
+                    var mapImage = new Image
+                    {
+                        Source = bitmap,
+                        Width = GridCellSize,
+                        Height = GridCellSize,
+                        Stretch = Stretch.Fill,
+                        IsHitTestVisible = false,
+                        ZIndex = 5
+                    };
+
+                    Canvas.SetLeft(mapImage, anchorX + (y * GridCellSize));
+                    Canvas.SetTop(mapImage, anchorY + (x * GridCellSize));
+
+                    MapCanvas.Children.Add(mapImage);
+                    _defaultTiles.Add(mapImage);
+                }
+                catch
+                {
+                    // Ignore missing files or log them
+                }
+            }
+        }
+    }
+
+    private void OnToggleDefaultTilesClicked(object? sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem menuItem)
+        {
+            bool isVisible = menuItem.IsChecked == true;
+            foreach (var tile in _defaultTiles)
+            {
+                tile.IsVisible = isVisible;
+            }
+        }
     }
 
     private void ResetView()
