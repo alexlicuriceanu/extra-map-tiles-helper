@@ -55,6 +55,7 @@
             
 			<MenuItem Header="_Options">
 				<MenuItem Header="Show Default Map" ToggleType="CheckBox" IsChecked="True" Click="OnToggleDefaultTilesClicked"/>
+				<MenuItem Header="Tile Snapping" ToggleType="CheckBox" IsChecked="True" Click="OnToggleTileSnappingClicked"/>
 			</MenuItem>
 		</Menu>
 

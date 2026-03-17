@@ -35,6 +35,7 @@ public partial class MainWindow : Window
     private readonly System.Collections.Generic.Dictionary<(int X, int Y), System.Collections.Generic.List<Avalonia.Rect>> _spatialHash = new();
     private Point _lastRawMousePosition = new Point(-1000, -1000);
     private readonly System.Collections.Generic.List<Image> _defaultTiles = new();
+    private bool _isSnappingEnabled = true;
 
     private void OnMainWindowLoaded(object? sender, RoutedEventArgs e)
     {
@@ -98,6 +99,14 @@ public partial class MainWindow : Window
             {
                 tile.IsVisible = isVisible;
             }
+        }
+    }
+
+    private void OnToggleTileSnappingClicked(object? sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem menuItem)
+        {
+            _isSnappingEnabled = menuItem.IsChecked == true;
         }
     }
 
@@ -280,6 +289,11 @@ public partial class MainWindow : Window
         double targetX = mousePosition.X - (GridCellSize / 2);
         double targetY = mousePosition.Y - (GridCellSize / 2);
 
+        if (!_isSnappingEnabled)
+        {
+            return new Point(targetX, targetY);
+        }
+
         // --- NEW: DISTANCE SQUARED MATH ---
         double snapThreshold = 48.0;
         double bestDistSq = snapThreshold * snapThreshold; // 2304
@@ -359,7 +373,8 @@ public partial class MainWindow : Window
                                 bestSnap = sp;
                                 foundSnap = true;
 
-                                if (bestDistSq < 1.0) return bestSnap;
+                                if (bestDistSq<1.0)
+                                    return bestSnap;
                             }
                         }
                     }
