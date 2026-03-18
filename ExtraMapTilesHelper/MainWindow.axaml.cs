@@ -274,6 +274,20 @@ public partial class MainWindow : Window
 
         // NEW: Listen for when the mouse first enters the canvas
         AddHandler(DragDrop.DragEnterEvent, OnCanvasDragEnter);
+
+        Dictionaries.CollectionChanged += (s, e) => UpdateDictionaryCount();
+        UpdateDictionaryCount();
+    }
+
+    private void UpdateDictionaryCount()
+    {
+        int dictCount = Dictionaries.Count;
+        int texCount = Dictionaries.Sum(d => d.Textures.Count);
+        
+        Dispatcher.UIThread.Post(() =>
+        {
+            DictionaryCountText.Text = $"Texture Dictionaries ({dictCount})";
+        });
     }
 
     private void OnCanvasDragEnter(object? sender, DragEventArgs e)
@@ -482,6 +496,17 @@ public partial class MainWindow : Window
         }
     }
 
+    // --- NEW: Status update helper ---
+    private void SetStatus(string message, bool isWorking)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            StatusText.Text = message;
+            StatusText.IsVisible = true;
+            StatusProgress.IsVisible = isWorking;
+        });
+    }
+
     private async void OnImportClicked(object? sender, RoutedEventArgs e)
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -494,6 +519,9 @@ public partial class MainWindow : Window
         if (files.Count == 0) return;
 
         ImportMenuItem.IsEnabled = false;
+        
+        // Show status before work starts
+        SetStatus($"Loading {files.Count} YTD files", true);
 
         await Task.Run(() =>
         {
@@ -523,6 +551,8 @@ public partial class MainWindow : Window
             }
         });
 
+        // Hide status when finished
+        SetStatus($"Loaded {files.Count} YTD files", false);
         ImportMenuItem.IsEnabled = true;
     }
 

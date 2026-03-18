@@ -4,7 +4,7 @@
         x:Class="ExtraMapTilesHelper.MainWindow"
         Title="Extra Map Tiles Helper"
         Background="#1e1e1e"
-        Foreground="#cccccc"
+        Foreground="White"
         FontFamily="Segoe UI Variable, Segoe UI"
         FontSize="12"
         MinWidth="512" MinHeight="360"
@@ -15,49 +15,57 @@
 
 	<LayoutTransformControl x:Name="RootTransform">
 	<DockPanel>
-		<Menu DockPanel.Dock="Top" Background="#2d2d30" Foreground="#cccccc">
-			<MenuItem Header="_File">
-				<MenuItem x:Name="ImportMenuItem" Header="_Import YTDs" Click="OnImportClicked"/>
-			    
-                <Separator/>
-            </MenuItem>
+		<DockPanel DockPanel.Dock="Top" Background="#2d2d30">
+			<!-- NEW: Status Indicator in the top right -->
+			<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="0,0,10,0" VerticalAlignment="Center">
+				<TextBlock x:Name="StatusText" Text="Ready" Foreground="White" VerticalAlignment="Center" Margin="0,0,10,0" />
+				<ProgressBar x:Name="StatusProgress" IsIndeterminate="True" Width="50" Height="4" VerticalAlignment="Center" IsVisible="False" Foreground="#e3a826" />
+			</StackPanel>
 
-			<MenuItem Header="_View">
-				<MenuItem Click="OnResetViewClicked" HotKey="Ctrl+R">
-					<MenuItem.Header>
-						<Grid ColumnDefinitions="*,Auto" MinWidth="180">
-							<TextBlock Grid.Column="0" Text="Reset View"/>
-							<TextBlock Grid.Column="1" Text="Ctrl+R" HorizontalAlignment="Right" Opacity="0.8"/>
-						</Grid>
-					</MenuItem.Header>
+			<!-- Modified: Set the menu's background to transparent since DockPanel now holds the color -->
+			<Menu Background="Transparent" Foreground="White">
+				<MenuItem Header="_File">
+					<MenuItem x:Name="ImportMenuItem" Header="_Import YTDs" Click="OnImportClicked"/>
+					<Separator/>
 				</MenuItem>
 
-				<Separator/>
+				<MenuItem Header="_View">
+					<MenuItem Click="OnResetViewClicked" HotKey="Ctrl+R">
+						<MenuItem.Header>
+							<Grid ColumnDefinitions="*,Auto" MinWidth="180">
+								<TextBlock Grid.Column="0" Text="Reset View"/>
+								<TextBlock Grid.Column="1" Text="Ctrl+R" HorizontalAlignment="Right" Opacity="0.8"/>
+							</Grid>
+						</MenuItem.Header>
+					</MenuItem>
 
-				<MenuItem Click="OnZoomInClicked" HotKey="Ctrl+OemPlus">
-					<MenuItem.Header>
-						<Grid ColumnDefinitions="*,Auto" MinWidth="180">
-							<TextBlock Grid.Column="0" Text="Zoom In"/>
-							<TextBlock Grid.Column="1" Text="Ctrl++" HorizontalAlignment="Right" Opacity="0.8"/>
-						</Grid>
-					</MenuItem.Header>
-				</MenuItem>
+					<Separator/>
 
-				<MenuItem Click="OnZoomOutClicked" HotKey="Ctrl+OemMinus">
-					<MenuItem.Header>
-						<Grid ColumnDefinitions="*,Auto" MinWidth="180">
-							<TextBlock Grid.Column="0" Text="Zoom Out"/>
-							<TextBlock Grid.Column="1" Text="Ctrl+-" HorizontalAlignment="Right" Opacity="0.8"/>
-						</Grid>
-					</MenuItem.Header>
+					<MenuItem Click="OnZoomInClicked" HotKey="Ctrl+OemPlus">
+						<MenuItem.Header>
+							<Grid ColumnDefinitions="*,Auto" MinWidth="180">
+								<TextBlock Grid.Column="0" Text="Zoom In"/>
+								<TextBlock Grid.Column="1" Text="Ctrl++" HorizontalAlignment="Right" Opacity="0.8"/>
+							</Grid>
+						</MenuItem.Header>
+					</MenuItem>
+
+					<MenuItem Click="OnZoomOutClicked" HotKey="Ctrl+OemMinus">
+						<MenuItem.Header>
+							<Grid ColumnDefinitions="*,Auto" MinWidth="180">
+								<TextBlock Grid.Column="0" Text="Zoom Out"/>
+								<TextBlock Grid.Column="1" Text="Ctrl+-" HorizontalAlignment="Right" Opacity="0.8"/>
+							</Grid>
+						</MenuItem.Header>
+					</MenuItem>
 				</MenuItem>
-			</MenuItem>
-            
-			<MenuItem Header="_Options">
-				<MenuItem Header="Show Default Map" ToggleType="CheckBox" IsChecked="True" Click="OnToggleDefaultTilesClicked"/>
-				<MenuItem Header="Tile Snapping" ToggleType="CheckBox" IsChecked="True" Click="OnToggleTileSnappingClicked"/>
-			</MenuItem>
-		</Menu>
+				
+				<MenuItem Header="_Options">
+					<MenuItem Header="Show Default Map" ToggleType="CheckBox" IsChecked="True" Click="OnToggleDefaultTilesClicked"/>
+					<MenuItem Header="Tile Snapping" ToggleType="CheckBox" IsChecked="True" Click="OnToggleTileSnappingClicked"/>
+				</MenuItem>
+			</Menu>
+		</DockPanel>
 
 		<Grid ColumnDefinitions="300, *, 250">
 
@@ -66,11 +74,12 @@
         BorderBrush="#3e3e42"
         BorderThickness="0,1,1,0">
 				<DockPanel>
-					<TextBlock DockPanel.Dock="Top"
-                               Text="Texture Dictionaries"
+					<TextBlock x:Name="DictionaryCountText" 
+                               DockPanel.Dock="Top"
+                               Text="Texture Dictionaries (0)"
                                FontWeight="Bold"
                                Background="#2d2d30"
-                               Foreground="#cccccc"
+                               Foreground="White"
                                Padding="10"/>
 
 					<TreeView x:Name="TextureTree" Background="Transparent" BorderThickness="0" Margin="10,5,10,10">
@@ -90,7 +99,7 @@
 													  Click="OnRemoveDictionaryClicked" />
 										</ContextMenu>
 									</Border.ContextMenu>
-									<TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#4fc1ff" Padding="0,5"/>
+									<TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="White" Padding="0,5"/>
 								</Border>
 							</TreeDataTemplate>
 
@@ -171,14 +180,14 @@
                                        Text="Selected Tile"
                                        FontWeight="Bold"
                                        Background="#2d2d30"
-                                       Foreground="#cccccc"
+                                       Foreground="White"
                                        Padding="10"/>
 
                             <DockPanel x:Name="TileEditorPanel" IsVisible="False" Margin="10,10,10,10">
                                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="0,0,0,15">
                                     <Image x:Name="SelectedTilePreview" Width="64" Height="64" Stretch="Uniform"/>
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock x:Name="SelectedTileName" FontWeight="Bold" Foreground="#4fc1ff"/>
+                                        <TextBlock x:Name="SelectedTileName" FontWeight="Bold" Foreground="White"/>
                                         <TextBlock x:Name="SelectedTileYtd" FontSize="11" Opacity="0.8"/>
                                     </StackPanel>
                                 </StackPanel>
@@ -205,14 +214,14 @@
 
                     <!-- Lower half for Placed Tiles Queue -->
                     <DockPanel Grid.Row="1" Background="#1e1e1e">
-    <TextBlock DockPanel.Dock="Top" Text="Placed Tiles Queue" FontWeight="Bold" Background="#2d2d30" Foreground="#cccccc" Padding="10"/>
+    <TextBlock DockPanel.Dock="Top" Text="Placed Tiles Queue" FontWeight="Bold" Background="#2d2d30" Foreground="White" Padding="10"/>
     
     <!-- ListBox inherently is scrollable when bounded inside a container -->
-    <ListBox x:Name="PlacedTilesList" Background="Transparent" Foreground="#cccccc" BorderThickness="0" Margin="0,5,0,0" SelectionChanged="OnPlacedTilesListSelectionChanged">
+    <ListBox x:Name="PlacedTilesList" Background="Transparent" Foreground="White" BorderThickness="0" Margin="0,5,0,0" SelectionChanged="OnPlacedTilesListSelectionChanged">
                             <ListBox.ItemTemplate>
                                 <DataTemplate DataType="models:PlacedTile">
                                     <StackPanel Margin="0,0,0,5">
-                                        <TextBlock Text="{Binding TxdName}" FontWeight="Bold" Foreground="#4fc1ff"/>
+                                        <TextBlock Text="{Binding TxdName}" FontWeight="Bold" Foreground="White"/>
                                         <TextBlock Text="{Binding YtdName, StringFormat='YTD: {0}'}" FontSize="11" Opacity="0.8"/>
                                         <TextBlock FontSize="11" Opacity="0.8">
                                             <Run Text="Pos: ("/>
