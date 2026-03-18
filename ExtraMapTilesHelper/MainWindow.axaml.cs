@@ -497,13 +497,11 @@ public partial class MainWindow : Window
     }
 
     // --- NEW: Status update helper ---
-    private void SetStatus(string message, bool isWorking)
+    private void SetStatus(string message)
     {
         Dispatcher.UIThread.Post(() =>
         {
             StatusText.Text = message;
-            StatusText.IsVisible = true;
-            StatusProgress.IsVisible = isWorking;
         });
     }
 
@@ -520,8 +518,11 @@ public partial class MainWindow : Window
 
         ImportMenuItem.IsEnabled = false;
         
+        int total = files.Count;
+        int current = 0;
+        
         // Show status before work starts
-        SetStatus($"Loading {files.Count} YTD files", true);
+        SetStatus($"Loading dictionaries ({current}/{total})");
 
         await Task.Run(() =>
         {
@@ -548,11 +549,13 @@ public partial class MainWindow : Window
 
                 // 4. Safely push the fully loaded dictionary to the UI
                 Dispatcher.UIThread.Post(() => Dictionaries.Add(newDict));
+                
+                current++;
+                Dispatcher.UIThread.Post(() => SetStatus($"Loading dictionaries ({current}/{total})"));
             }
         });
 
-        // Hide status when finished
-        SetStatus($"Loaded {files.Count} YTD files", false);
+        SetStatus("Ready");
         ImportMenuItem.IsEnabled = true;
     }
 
@@ -640,7 +643,8 @@ public partial class MainWindow : Window
                 Width = GridCellSize,
                 Height = GridCellSize,
                 Stretch = Stretch.Fill,
-                Tag = placedTile
+                Tag = placedTile,
+                ZIndex = 6
             };
 
             mapImage.PointerPressed += OnPlacedTilePointerPressed;

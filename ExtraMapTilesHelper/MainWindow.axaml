@@ -19,7 +19,6 @@
 			<!-- NEW: Status Indicator in the top right -->
 			<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="0,0,10,0" VerticalAlignment="Center">
 				<TextBlock x:Name="StatusText" Text="Ready" Foreground="White" VerticalAlignment="Center" Margin="0,0,10,0" />
-				<ProgressBar x:Name="StatusProgress" IsIndeterminate="True" Width="50" Height="4" VerticalAlignment="Center" IsVisible="False" Foreground="#e3a826" />
 			</StackPanel>
 
 			<!-- Modified: Set the menu's background to transparent since DockPanel now holds the color -->
@@ -134,12 +133,19 @@
                         RenderOptions.BitmapInterpolationMode="LowQuality">
                     
                     <Canvas.Background>
-                        <VisualBrush TileMode="Tile" SourceRect="0,0,256,256" DestinationRect="0,0,256,256">
-                            <VisualBrush.Visual>
-                                <Rectangle Width="256" Height="256" Stroke="#3e3e42" StrokeThickness="1" Fill="#121212" IsHitTestVisible="False"/>
-                            </VisualBrush.Visual>
-                        </VisualBrush>
+                        <SolidColorBrush Color="#121212"/>
                     </Canvas.Background>
+
+                    <!-- The grid lines drawn ON TOP of the tiles -->
+                    <Rectangle Width="100000" Height="100000" IsHitTestVisible="False" ZIndex="10">
+                        <Rectangle.Fill>
+                            <VisualBrush TileMode="Tile" SourceRect="0,0,256,256" DestinationRect="0,0,256,256">
+                                <VisualBrush.Visual>
+                                    <Rectangle Width="256" Height="256" Stroke="#3e3e42" StrokeThickness="1" Fill="Transparent" IsHitTestVisible="False"/>
+                                </VisualBrush.Visual>
+                            </VisualBrush>
+                        </Rectangle.Fill>
+                    </Rectangle>
 
                     <Border x:Name="DragHighlight"
                             Width="256" Height="256"
