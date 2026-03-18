@@ -73,6 +73,13 @@
                     <TreeView.DataTemplates>
                         <TreeDataTemplate DataType="models:DictionaryItem" ItemsSource="{Binding Textures}">
                             <Border Background="Transparent" PointerPressed="OnDictionaryPointerPressed">
+                                <Border.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Remove from project"
+                                                  Tag="{Binding}"
+                                                  Click="OnRemoveDictionaryClicked" />
+                                    </ContextMenu>
+                                </Border.ContextMenu>
                                 <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#4fc1ff" Padding="0,5"/>
                             </Border>
                         </TreeDataTemplate>

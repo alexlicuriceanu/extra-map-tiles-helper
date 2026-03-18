@@ -790,4 +790,44 @@ public partial class MainWindow : Window
             e.Handled = true;
         }
     }
+
+    private void OnRemoveDictionaryClicked(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem menuItem || menuItem.Tag is not DictionaryItem dictionary)
+        {
+            return;
+        }
+
+        var placedTilesToRemove = PlacedTiles
+            .Where(t => string.Equals(t.YtdName, dictionary.Name, StringComparison.Ordinal))
+            .ToList();
+
+        var imageTilesToRemove = MapCanvas.Children
+            .OfType<Image>()
+            .Where(img => img.Tag is PlacedTile tile &&
+                          string.Equals(tile.YtdName, dictionary.Name, StringComparison.Ordinal))
+            .ToList();
+
+        foreach (var image in imageTilesToRemove)
+        {
+            MapCanvas.Children.Remove(image);
+        }
+
+        foreach (var placedTile in placedTilesToRemove)
+        {
+            PlacedTiles.Remove(placedTile);
+        }
+
+        if (_currentSelectedTile != null &&
+            string.Equals(_currentSelectedTile.YtdName, dictionary.Name, StringComparison.Ordinal))
+        {
+            PlacedTilesList.SelectedItem = null;
+            _currentSelectedImage = null;
+            _currentSelectedTile = null;
+            TileEditorPanel.IsVisible = false;
+            SelectionHighlight.IsVisible = false;
+        }
+
+        Dictionaries.Remove(dictionary);
+    }
 }
