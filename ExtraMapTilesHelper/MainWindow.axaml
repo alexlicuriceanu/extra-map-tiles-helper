@@ -92,7 +92,7 @@
 							<TreeDataTemplate DataType="models:DictionaryItem" ItemsSource="{Binding Textures}">
 								<Border Background="Transparent" PointerPressed="OnDictionaryPointerPressed">
 									<Border.ContextMenu>
-										<ContextMenu>
+										<ContextMenu FontSize="12" FontFamily="Segoe UI Variable, Segoe UI">
 											<MenuItem Header="Remove from project"
 													  Tag="{Binding}"
 													  Click="OnRemoveDictionaryClicked" />
