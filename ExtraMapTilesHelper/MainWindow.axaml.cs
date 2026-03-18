@@ -26,6 +26,9 @@ public partial class MainWindow : Window
     private const double ZoomOutSpeed = 0.85;
     private const double GridCellSize = 256.0;
 
+    private const double OriginTileX = 49920.0;
+    private const double OriginTileY = 49920.0;
+
     private double _zoomLevel = DefaultZoom;
     private bool _isPanning = false;
     private Avalonia.Point _lastPanPoint;
@@ -122,7 +125,7 @@ public partial class MainWindow : Window
     private void CenterViewOnMap()
     {
         // The logical center point where the red dot is
-        double mapCenterX = 49920 * _zoomLevel; 
+        double mapCenterX = 49920 * _zoomLevel;
         double mapCenterY = 49920 * _zoomLevel;
 
         double viewportHalfWidth = MapScrollViewer.Viewport.Width / 2;
@@ -252,7 +255,7 @@ public partial class MainWindow : Window
     private Image? _currentSelectedImage;
     private PlacedTile? _currentSelectedTile;
     private bool _isUpdatingBoxes = false;
-    
+
     // --- NEW: Grid Tile Dragging Trackers ---
     private Point? _tileDragStartPoint;
     private bool _isDraggingTile = false;
@@ -413,7 +416,7 @@ public partial class MainWindow : Window
                                 if (bestDistSq < 1.0)
                                 {
                                     return bestSnap;
-                                }   
+                                }
                             }
                         }
                     }
@@ -565,24 +568,19 @@ public partial class MainWindow : Window
             var dropPosition = e.GetPosition(MapCanvas);
             var finalPosition = CalculateDropPosition(dropPosition);
 
-            // Update the underlying data
-            moveTile.X = finalPosition.X;
-            moveTile.Y = finalPosition.Y;
+            // Update both coordinate systems in one place
+            SetTilePositionFromCoordinates(moveTile, finalPosition.X, finalPosition.Y);
 
             // Move the existing Canvas Image
-            Canvas.SetLeft(sourceImage, finalPosition.X);
-            Canvas.SetTop(sourceImage, finalPosition.Y);
+            Canvas.SetLeft(sourceImage, moveTile.X);
+            Canvas.SetTop(sourceImage, moveTile.Y);
 
-            // Keep the properties panel in sync if it's currently selected
+            // Keep selection visuals + editor in sync
             if (_currentSelectedTile == moveTile)
             {
-                Canvas.SetLeft(SelectionHighlight, finalPosition.X);
-                Canvas.SetTop(SelectionHighlight, finalPosition.Y);
-
-                _isUpdatingBoxes = true;
-                EditXBox.Value = (decimal)finalPosition.X;
-                EditYBox.Value = (decimal)finalPosition.Y;
-                _isUpdatingBoxes = false;
+                Canvas.SetLeft(SelectionHighlight, moveTile.X);
+                Canvas.SetTop(SelectionHighlight, moveTile.Y);
+                UpdateCoordinateEditorUi(); // respects XY/Offset mode
             }
         }
         // B) Handle placing a completely new tile from the sidebar
@@ -601,10 +599,10 @@ public partial class MainWindow : Window
             // Create and store the data structure representation
             var placedTile = new PlacedTile
             {
-                Texture = item,
-                X = finalPosition.X,
-                Y = finalPosition.Y
+                Texture = item
             };
+
+            SetTilePositionFromCoordinates(placedTile, finalPosition.X, finalPosition.Y);
 
             var mapImage = new Image
             {
@@ -636,7 +634,7 @@ public partial class MainWindow : Window
         {
             SelectTile(tile, mapImage);
             PlacedTilesList.SelectedItem = tile; // Sync with listbox selection
-            
+
             // Record exactly where the mouse started the click instead of dragging immediately
             _tileDragStartPoint = e.GetPosition(MapCanvas);
             e.Handled = true;
@@ -680,7 +678,7 @@ public partial class MainWindow : Window
 
     private void OnPlacedTilePointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        // Cancel the potential drag if they successfully let go without moving past the threshold
+        // Cancel the potential drag if they successfully let go of the mouse button
         _tileDragStartPoint = null;
     }
 
@@ -708,16 +706,16 @@ public partial class MainWindow : Window
         _currentSelectedImage = mapImage;
         _currentSelectedTile = tile;
 
+        // Keep offsets in sync if tile came from older data
+        SetTilePositionFromCoordinates(tile, tile.X, tile.Y);
+
         _isUpdatingBoxes = true;
 
         TileEditorPanel.IsVisible = true;
         SelectedTileName.Text = tile.TxdName;
         SelectedTileYtd.Text = $"YTD: {tile.YtdName}";
-        EditXBox.Value = (decimal)tile.X;
-        EditYBox.Value = (decimal)tile.Y;
         SelectedTilePreview.Source = tile.Texture.Preview;
 
-        // Update selection highlight position and size
         SelectionHighlight.Width = mapImage.Width;
         SelectionHighlight.Height = mapImage.Height;
         Canvas.SetLeft(SelectionHighlight, tile.X);
@@ -725,6 +723,8 @@ public partial class MainWindow : Window
         SelectionHighlight.IsVisible = true;
 
         _isUpdatingBoxes = false;
+
+        UpdateCoordinateEditorUi();
     }
 
     private void OnEditBoxValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
@@ -733,18 +733,23 @@ public partial class MainWindow : Window
 
         double newValue = (double)e.NewValue.Value;
 
-        if (sender == EditXBox)
+        if (IsOffsetMode)
         {
-            _currentSelectedTile.X = newValue;
-            Canvas.SetLeft(_currentSelectedImage, newValue);
-            Canvas.SetLeft(SelectionHighlight, newValue);
+            double offsetX = sender == EditXBox ? newValue : _currentSelectedTile.OffsetX;
+            double offsetY = sender == EditYBox ? newValue : _currentSelectedTile.OffsetY;
+            SetTilePositionFromOffsets(_currentSelectedTile, offsetX, offsetY);
         }
-        else if (sender == EditYBox)
+        else
         {
-            _currentSelectedTile.Y = newValue;
-            Canvas.SetTop(_currentSelectedImage, newValue);
-            Canvas.SetTop(SelectionHighlight, newValue);
+            double x = sender == EditXBox ? newValue : _currentSelectedTile.X;
+            double y = sender == EditYBox ? newValue : _currentSelectedTile.Y;
+            SetTilePositionFromCoordinates(_currentSelectedTile, x, y);
         }
+
+        Canvas.SetLeft(_currentSelectedImage, _currentSelectedTile.X);
+        Canvas.SetTop(_currentSelectedImage, _currentSelectedTile.Y);
+        Canvas.SetLeft(SelectionHighlight, _currentSelectedTile.X);
+        Canvas.SetTop(SelectionHighlight, _currentSelectedTile.Y);
     }
 
     private void OnDictionaryPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -829,5 +834,67 @@ public partial class MainWindow : Window
         }
 
         Dictionaries.Remove(dictionary);
+    }
+
+    private bool IsOffsetMode => CoordinateModeToggle.IsChecked == true;
+
+    private Point CoordinatesToOffsets(double x, double y)
+    {
+        return new Point(
+            (x - OriginTileX) / GridCellSize,
+            (y - OriginTileY) / GridCellSize);
+    }
+
+    private Point OffsetsToCoordinates(double offsetX, double offsetY)
+    {
+        return new Point(
+            OriginTileX + (offsetX * GridCellSize),
+            OriginTileY + (offsetY * GridCellSize));
+    }
+
+    private void SetTilePositionFromCoordinates(PlacedTile tile, double x, double y)
+    {
+        tile.X = x;
+        tile.Y = y;
+
+        var offsets = CoordinatesToOffsets(x, y);
+        tile.OffsetX = offsets.X;
+        tile.OffsetY = offsets.Y;
+    }
+
+    private void SetTilePositionFromOffsets(PlacedTile tile, double offsetX, double offsetY)
+    {
+        tile.OffsetX = offsetX;
+        tile.OffsetY = offsetY;
+
+        var coords = OffsetsToCoordinates(offsetX, offsetY);
+        tile.X = coords.X;
+        tile.Y = coords.Y;
+    }
+
+    private void UpdateCoordinateEditorUi()
+    {
+        EditXLabel.Text = IsOffsetMode ? "Offset X:" : "X:";
+        EditYLabel.Text = IsOffsetMode ? "Offset Y:" : "Y:";
+
+        if (_currentSelectedTile == null) return;
+
+        _isUpdatingBoxes = true;
+        if (IsOffsetMode)
+        {
+            EditXBox.Value = (decimal)_currentSelectedTile.OffsetX;
+            EditYBox.Value = (decimal)_currentSelectedTile.OffsetY;
+        }
+        else
+        {
+            EditXBox.Value = (decimal)_currentSelectedTile.X;
+            EditYBox.Value = (decimal)_currentSelectedTile.Y;
+        }
+        _isUpdatingBoxes = false;
+    }
+
+    private void OnCoordinateModeToggled(object? sender, RoutedEventArgs e)
+    {
+        UpdateCoordinateEditorUi();
     }
 }

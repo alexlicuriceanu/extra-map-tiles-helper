@@ -183,11 +183,20 @@
                                     </StackPanel>
                                 </StackPanel>
 
+                                <ToggleSwitch x:Name="CoordinateModeToggle"
+                                              DockPanel.Dock="Top"
+                                              OffContent="XY Mode"
+                                              OnContent="Offset Mode"
+                                              IsChecked="True"
+                                              Checked="OnCoordinateModeToggled"
+                                              Unchecked="OnCoordinateModeToggled"
+                                              Margin="0,0,0,10"/>
+
                                 <Grid RowDefinitions="Auto, Auto" ColumnDefinitions="Auto, *" DockPanel.Dock="Top">
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                                    <TextBlock x:Name="EditXLabel" Grid.Row="0" Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
                                     <NumericUpDown x:Name="EditXBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,10" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
 
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Y:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <TextBlock x:Name="EditYLabel" Grid.Row="1" Grid.Column="0" Text="Y:" VerticalAlignment="Center" Margin="0,0,10,0"/>
                                     <NumericUpDown x:Name="EditYBox" Grid.Row="1" Grid.Column="1" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
                                 </Grid>
                             </DockPanel>

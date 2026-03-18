@@ -7,34 +7,48 @@ public class PlacedTile : INotifyPropertyChanged
 {
     private double _x;
     private double _y;
+    private double _offsetX;
+    private double _offsetY;
     private TextureItem _texture = null!;
 
-    public required TextureItem Texture 
-    { 
-        get => _texture; 
-        set 
-        { 
-            _texture = value; 
+    public required TextureItem Texture
+    {
+        get => _texture;
+        set
+        {
+            _texture = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(YtdName));
             OnPropertyChanged(nameof(TxdName));
-        } 
-    }
-    
-    // Coordinates
-    public double X 
-    { 
-        get => _x; 
-        set { if (_x != value) { _x = value; OnPropertyChanged(); } } 
-    }
-    
-    public double Y 
-    { 
-        get => _y; 
-        set { if (_y != value) { _y = value; OnPropertyChanged(); } } 
+        }
     }
 
-    // Helpers to easily access these bindings for UI or export
+    // World-space coordinates (canvas pixels)
+    public double X
+    {
+        get => _x;
+        set { if (_x != value) { _x = value; OnPropertyChanged(); } }
+    }
+
+    public double Y
+    {
+        get => _y;
+        set { if (_y != value) { _y = value; OnPropertyChanged(); } }
+    }
+
+    // Tile offsets from origin (0,0), with inverted Y axis
+    public double OffsetX
+    {
+        get => _offsetX;
+        set { if (_offsetX != value) { _offsetX = value; OnPropertyChanged(); } }
+    }
+
+    public double OffsetY
+    {
+        get => _offsetY;
+        set { if (_offsetY != value) { _offsetY = value; OnPropertyChanged(); } }
+    }
+
     public string YtdName => Texture?.DictionaryName ?? string.Empty;
     public string TxdName => Texture?.Name ?? string.Empty;
 
