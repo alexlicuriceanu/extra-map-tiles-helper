@@ -61,48 +61,58 @@
 
 		<Grid ColumnDefinitions="300, *, 250">
 
-			<Border Grid.Column="0" Background="#252526" BorderBrush="#3e3e42" BorderThickness="0,0,1,0">
-				<TreeView x:Name="TextureTree" Background="Transparent" BorderThickness="0" Margin="10">
-                    
-                    <TreeView.Styles>
-                        <Style Selector="TreeViewItem">
-                            <Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
-                        </Style>
-                    </TreeView.Styles>
-                    
-                    <TreeView.DataTemplates>
-                        <TreeDataTemplate DataType="models:DictionaryItem" ItemsSource="{Binding Textures}">
-                            <Border Background="Transparent" PointerPressed="OnDictionaryPointerPressed">
-                                <Border.ContextMenu>
-                                    <ContextMenu>
-                                        <MenuItem Header="Remove from project"
-                                                  Tag="{Binding}"
-                                                  Click="OnRemoveDictionaryClicked" />
-                                    </ContextMenu>
-                                </Border.ContextMenu>
-                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#4fc1ff" Padding="0,5"/>
-                            </Border>
-                        </TreeDataTemplate>
-                        
-                        <DataTemplate DataType="models:TextureItem">
-                            <Border Background="Transparent" PointerPressed="OnItemPointerPressed">
-                                <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <Image Source="{Binding Preview}" Width="48" Height="48" />
-                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                        
-                    </TreeView.DataTemplates>
-                </TreeView>
-            </Border>
+			<Border Grid.Column="0"
+        Background="#252526"
+        BorderBrush="#3e3e42"
+        BorderThickness="0,1,1,0">
+				<DockPanel>
+					<TextBlock DockPanel.Dock="Top"
+                               Text="Texture Dictionaries"
+                               FontWeight="Bold"
+                               Background="#2d2d30"
+                               Foreground="#cccccc"
+                               Padding="10"/>
 
-            <ScrollViewer x:Name="MapScrollViewer" Grid.Column="1"
-                      HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"
-                      AllowAutoHide="False"
-                      PointerPressed="OnMapPointerPressed"
-                      PointerMoved="OnMapPointerMoved"
-                      PointerReleased="OnMapPointerReleased">
+					<TreeView x:Name="TextureTree" Background="Transparent" BorderThickness="0" Margin="10,5,10,10">
+						<TreeView.Styles>
+							<Style Selector="TreeViewItem">
+								<Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
+							</Style>
+						</TreeView.Styles>
+
+						<TreeView.DataTemplates>
+							<TreeDataTemplate DataType="models:DictionaryItem" ItemsSource="{Binding Textures}">
+								<Border Background="Transparent" PointerPressed="OnDictionaryPointerPressed">
+									<Border.ContextMenu>
+										<ContextMenu>
+											<MenuItem Header="Remove from project"
+													  Tag="{Binding}"
+													  Click="OnRemoveDictionaryClicked" />
+										</ContextMenu>
+									</Border.ContextMenu>
+									<TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#4fc1ff" Padding="0,5"/>
+								</Border>
+							</TreeDataTemplate>
+
+							<DataTemplate DataType="models:TextureItem">
+								<Border Background="Transparent" PointerPressed="OnItemPointerPressed">
+									<StackPanel Orientation="Horizontal" Spacing="10">
+										<Image Source="{Binding Preview}" Width="48" Height="48" />
+										<TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+									</StackPanel>
+								</Border>
+							</DataTemplate>
+						</TreeView.DataTemplates>
+					</TreeView>
+				</DockPanel>
+			</Border>
+
+			<ScrollViewer x:Name="MapScrollViewer" Grid.Column="1"
+					  HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"
+					  AllowAutoHide="False"
+					  PointerPressed="OnMapPointerPressed"
+					  PointerMoved="OnMapPointerMoved"
+					  PointerReleased="OnMapPointerReleased">
             
             <LayoutTransformControl x:Name="MapZoomTransform"
                                     HorizontalAlignment="Center"
@@ -138,7 +148,7 @@
                              Canvas.Top="49910"
                              Width="20"
                              Height="20" 
-                             Fill="#ff0000"
+                             Fill="#e3a826"
                              Stroke="#1e1e1e"
                              StrokeThickness="2"
                              ZIndex="100"
@@ -148,29 +158,39 @@
 
             </ScrollViewer>
 
-            <Border Grid.Column="2" Background="#252526" BorderBrush="#3e3e42" BorderThickness="1,0,0,0">
+            <Border Grid.Column="2"
+        Background="#252526"
+        BorderBrush="#3e3e42"
+        BorderThickness="1,1,0,0">
                 <Grid RowDefinitions="*,*">
                     
                     <!-- Upper half: Selected Tile Properties -->
                     <Border Grid.Row="0" BorderBrush="#3e3e42" BorderThickness="0,0,0,1" Background="#1e1e1e">
-                        <DockPanel x:Name="TileEditorPanel" IsVisible="False" Margin="10">
-                            <TextBlock DockPanel.Dock="Top" Text="Tile Properties" FontWeight="Bold" Foreground="#cccccc" Margin="0,0,0,10"/>
-                            
-                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="0,0,0,15">
-                                <Image x:Name="SelectedTilePreview" Width="64" Height="64" Stretch="Uniform"/>
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock x:Name="SelectedTileName" FontWeight="Bold" Foreground="#4fc1ff"/>
-                                    <TextBlock x:Name="SelectedTileYtd" FontSize="11" Opacity="0.8"/>
-                                </StackPanel>
-                            </StackPanel>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top"
+                                       Text="Selected Tile"
+                                       FontWeight="Bold"
+                                       Background="#2d2d30"
+                                       Foreground="#cccccc"
+                                       Padding="10"/>
 
-                            <Grid RowDefinitions="Auto, Auto" ColumnDefinitions="Auto, *" DockPanel.Dock="Top">
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
-                                <NumericUpDown x:Name="EditXBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,10" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
-                                
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Y:" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <NumericUpDown x:Name="EditYBox" Grid.Row="1" Grid.Column="1" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
-                            </Grid>
+                            <DockPanel x:Name="TileEditorPanel" IsVisible="False" Margin="10,10,10,10">
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="0,0,0,15">
+                                    <Image x:Name="SelectedTilePreview" Width="64" Height="64" Stretch="Uniform"/>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock x:Name="SelectedTileName" FontWeight="Bold" Foreground="#4fc1ff"/>
+                                        <TextBlock x:Name="SelectedTileYtd" FontSize="11" Opacity="0.8"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <Grid RowDefinitions="Auto, Auto" ColumnDefinitions="Auto, *" DockPanel.Dock="Top">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                                    <NumericUpDown x:Name="EditXBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,10" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Y:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <NumericUpDown x:Name="EditYBox" Grid.Row="1" Grid.Column="1" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
+                                </Grid>
+                            </DockPanel>
                         </DockPanel>
                     </Border>
 
