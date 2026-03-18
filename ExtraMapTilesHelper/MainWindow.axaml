@@ -62,7 +62,7 @@
 		<Grid ColumnDefinitions="300, *, 250">
 
 			<Border Grid.Column="0"
-        Background="#252526"
+        Background="#1e1e1e"
         BorderBrush="#3e3e42"
         BorderThickness="0,1,1,0">
 				<DockPanel>
@@ -195,11 +195,11 @@
                     </Border>
 
                     <!-- Lower half for Placed Tiles Queue -->
-                    <DockPanel Grid.Row="1">
-                        <TextBlock DockPanel.Dock="Top" Text="Placed Tiles Queue" FontWeight="Bold" Background="#2d2d30" Foreground="#cccccc" Padding="10"/>
-                        
-                        <!-- ListBox inherently is scrollable when bounded inside a container -->
-                        <ListBox x:Name="PlacedTilesList" Background="Transparent" Foreground="#cccccc" BorderThickness="0" Margin="0,5,0,0" SelectionChanged="OnPlacedTilesListSelectionChanged">
+                    <DockPanel Grid.Row="1" Background="#1e1e1e">
+    <TextBlock DockPanel.Dock="Top" Text="Placed Tiles Queue" FontWeight="Bold" Background="#2d2d30" Foreground="#cccccc" Padding="10"/>
+    
+    <!-- ListBox inherently is scrollable when bounded inside a container -->
+    <ListBox x:Name="PlacedTilesList" Background="Transparent" Foreground="#cccccc" BorderThickness="0" Margin="0,5,0,0" SelectionChanged="OnPlacedTilesListSelectionChanged">
                             <ListBox.ItemTemplate>
                                 <DataTemplate DataType="models:PlacedTile">
                                     <StackPanel Margin="0,0,0,5">
