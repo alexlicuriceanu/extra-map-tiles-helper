@@ -114,7 +114,7 @@
                     </Canvas.Background>
 
                     <!-- The grid lines drawn ON TOP of the tiles -->
-                    <Rectangle Width="100000" Height="100000" IsHitTestVisible="False" ZIndex="10">
+                    <Rectangle Width="100000" Height="100000" IsHitTestVisible="False" ZIndex="5">
                         <Rectangle.Fill>
                             <VisualBrush TileMode="Tile" SourceRect="0,0,256,256" DestinationRect="0,0,256,256">
                                 <VisualBrush.Visual>

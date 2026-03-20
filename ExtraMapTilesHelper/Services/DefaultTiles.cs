@@ -33,7 +33,7 @@ public sealed class DefaultTiles
                         Height = grid,
                         Stretch = Stretch.Fill,
                         IsHitTestVisible = false,
-                        ZIndex = 5
+                        ZIndex = 4 // Put beneath Grid(5) and Placed Tiles(6)
                     };
 
                     Canvas.SetLeft(mapImage, anchorX + (y * grid));
