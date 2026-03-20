@@ -25,6 +25,7 @@
 				<MenuItem Header="_File">
 					<MenuItem x:Name="ImportMenuItem" Header="_Import YTDs" Click="OnImportClicked"/>
 					<Separator/>
+					<MenuItem Header="E_xit" Click="OnExitClicked"/>
 				</MenuItem>
 
 				<MenuItem Header="_View">

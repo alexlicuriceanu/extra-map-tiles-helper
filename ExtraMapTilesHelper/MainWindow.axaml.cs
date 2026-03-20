@@ -105,6 +105,11 @@ public partial class MainWindow : Window
             enabled => ImportMenuItem.IsEnabled = enabled);
     }
 
+    private void OnExitClicked(object? sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+
     private void OnRemoveDictionaryClicked(object? sender, RoutedEventArgs e)
     {
         if (sender is not MenuItem menuItem || menuItem.Tag is not DictionaryItem dictionary) return;
