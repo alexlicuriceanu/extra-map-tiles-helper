@@ -524,39 +524,54 @@ public partial class MainWindow : Window
         // Show status before work starts
         SetStatus($"Loading dictionaries ({current}/{total})");
 
-        await Task.Run(() =>
+        try
         {
-            foreach (var file in files)
+            await Task.Run(() =>
             {
-                string dictName = System.IO.Path.GetFileNameWithoutExtension(file.Path.LocalPath);
-
-                // 1. DUPLICATE CHECK: Remove the whole dictionary if it already exists
-                Dispatcher.UIThread.Invoke(() =>
+                foreach (var file in files)
                 {
-                    var existingDict = Dictionaries.FirstOrDefault(d => d.Name == dictName);
-                    if (existingDict != null) Dictionaries.Remove(existingDict);
-                });
+                    string dictName = System.IO.Path.GetFileNameWithoutExtension(file.Path.LocalPath);
 
-                // 2. Create the new parent dictionary
-                var newDict = new DictionaryItem { Name = dictName };
+                    // 1. DUPLICATE CHECK: Remove the whole dictionary if it already exists
+                    Dispatcher.UIThread.Invoke(() =>
+                    {
+                        var existingDict = Dictionaries.FirstOrDefault(d => d.Name == dictName);
+                        if (existingDict != null) Dictionaries.Remove(existingDict);
+                    });
 
-                // 3. Extract textures and add them TO THE DICTIONARY, not the main UI yet
-                var extractedTextures = _ytdService.ExtractTextures(file.Path.LocalPath);
-                foreach (var tex in extractedTextures)
-                {
-                    newDict.Textures.Add(tex);
-                }
+                    // 2. Create the new parent dictionary
+                    var newDict = new DictionaryItem { Name = dictName };
 
-                // 4. Safely push the fully loaded dictionary to the UI
-                Dispatcher.UIThread.Post(() => Dictionaries.Add(newDict));
+                    // 3. Extract textures and add them TO THE DICTIONARY, not the main UI yet
+                    var extractedTextures = _ytdService.ExtractTextures(file.Path.LocalPath);
+                    foreach (var tex in extractedTextures)
+                    {
+                        newDict.Textures.Add(tex);
+                    }
+
+                    // 4. Safely push the fully loaded dictionary to the UI
+                    Dispatcher.UIThread.Post(() => Dictionaries.Add(newDict));
                 
-                current++;
-                Dispatcher.UIThread.Post(() => SetStatus($"Loading dictionaries ({current}/{total})"));
-            }
-        });
+                    current++;
+                    SetStatus($"Loading dictionaries ({current}/{total})");
+                }
+            });
 
-        SetStatus("Ready");
-        ImportMenuItem.IsEnabled = true;
+            // Delay setting the final status slightly to ensure it lands after the queued loading status updates
+            Dispatcher.UIThread.Post(() => 
+            {
+                SetStatus($"Loaded {total} Dictionaries");
+            });
+        }
+        catch (Exception ex)
+        {
+            SetStatus("Error loading dictionaries");
+            // Optionally log ex
+        }
+        finally
+        {
+            ImportMenuItem.IsEnabled = true;
+        }
     }
 
     // --- NEW DRAG AND DROP LOGIC ---
