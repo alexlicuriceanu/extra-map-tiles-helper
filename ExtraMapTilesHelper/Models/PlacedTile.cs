@@ -49,6 +49,22 @@ public class PlacedTile : INotifyPropertyChanged
         set { if (_offsetY != value) { _offsetY = value; OnPropertyChanged(); } }
     }
 
+    private double _gameX;
+    private double _gameY;
+
+    // In-game coordinates
+    public double GameX
+    {
+        get => _gameX;
+        set { if (_gameX != value) { _gameX = value; OnPropertyChanged(); } }
+    }
+
+    public double GameY
+    {
+        get => _gameY;
+        set { if (_gameY != value) { _gameY = value; OnPropertyChanged(); } }
+    }
+
     public string YtdName => Texture?.DictionaryName ?? string.Empty;
     public string TxdName => Texture?.Name ?? string.Empty;
 

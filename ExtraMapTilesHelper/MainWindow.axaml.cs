@@ -29,6 +29,11 @@ public partial class MainWindow : Window
     private const double OriginTileX = 49920.0;
     private const double OriginTileY = 49920.0;
 
+    // Add near your existing origin constants
+    private const double GameOriginX = -4140.0;
+    private const double GameOriginY = 8400.0;
+    private const double GameTileSize = 4500.0;
+
     private double _zoomLevel = DefaultZoom;
     private bool _isPanning = false;
     private Avalonia.Point _lastPanPoint;
@@ -283,7 +288,7 @@ public partial class MainWindow : Window
     {
         int dictCount = Dictionaries.Count;
         int texCount = Dictionaries.Sum(d => d.Textures.Count);
-        
+
         Dispatcher.UIThread.Post(() =>
         {
             DictionaryCountText.Text = $"Texture Dictionaries ({dictCount})";
@@ -517,10 +522,10 @@ public partial class MainWindow : Window
         if (files.Count == 0) return;
 
         ImportMenuItem.IsEnabled = false;
-        
+
         int total = files.Count;
         int current = 0;
-        
+
         // Show status before work starts
         SetStatus($"Loading dictionaries ({current}/{total})");
 
@@ -551,14 +556,14 @@ public partial class MainWindow : Window
 
                     // 4. Safely push the fully loaded dictionary to the UI
                     Dispatcher.UIThread.Post(() => Dictionaries.Add(newDict));
-                
+
                     current++;
                     SetStatus($"Loading dictionaries ({current}/{total})");
                 }
             });
 
             // Delay setting the final status slightly to ensure it lands after the queued loading status updates
-            Dispatcher.UIThread.Post(() => 
+            Dispatcher.UIThread.Post(() =>
             {
                 SetStatus($"Loaded {total} Dictionaries");
             });
@@ -790,9 +795,9 @@ public partial class MainWindow : Window
         }
         else
         {
-            double x = sender == EditXBox ? newValue : _currentSelectedTile.X;
-            double y = sender == EditYBox ? newValue : _currentSelectedTile.Y;
-            SetTilePositionFromCoordinates(_currentSelectedTile, x, y);
+            double gameX = sender == EditXBox ? newValue : _currentSelectedTile.GameX;
+            double gameY = sender == EditYBox ? newValue : _currentSelectedTile.GameY;
+            SetTilePositionFromGame(_currentSelectedTile, gameX, gameY);
         }
 
         Canvas.SetLeft(_currentSelectedImage, _currentSelectedTile.X);
@@ -901,6 +906,21 @@ public partial class MainWindow : Window
             OriginTileY + (offsetY * GridCellSize));
     }
 
+    private Point CoordinatesToGame(double x, double y)
+    {
+        var offsets = CoordinatesToOffsets(x, y);
+        return new Point(
+            GameOriginX + (offsets.X * GameTileSize),
+            GameOriginY + (offsets.Y * GameTileSize));
+    }
+
+    private Point GameToCoordinates(double gameX, double gameY)
+    {
+        double offsetX = (gameX - GameOriginX) / GameTileSize;
+        double offsetY = (gameY - GameOriginY) / GameTileSize;
+        return OffsetsToCoordinates(offsetX, offsetY);
+    }
+
     private void SetTilePositionFromCoordinates(PlacedTile tile, double x, double y)
     {
         tile.X = x;
@@ -909,6 +929,10 @@ public partial class MainWindow : Window
         var offsets = CoordinatesToOffsets(x, y);
         tile.OffsetX = offsets.X;
         tile.OffsetY = offsets.Y;
+
+        var game = CoordinatesToGame(x, y);
+        tile.GameX = game.X;
+        tile.GameY = game.Y;
     }
 
     private void SetTilePositionFromOffsets(PlacedTile tile, double offsetX, double offsetY)
@@ -919,12 +943,30 @@ public partial class MainWindow : Window
         var coords = OffsetsToCoordinates(offsetX, offsetY);
         tile.X = coords.X;
         tile.Y = coords.Y;
+
+        var game = CoordinatesToGame(coords.X, coords.Y);
+        tile.GameX = game.X;
+        tile.GameY = game.Y;
+    }
+
+    private void SetTilePositionFromGame(PlacedTile tile, double gameX, double gameY)
+    {
+        tile.GameX = gameX;
+        tile.GameY = gameY;
+
+        var coords = GameToCoordinates(gameX, gameY);
+        tile.X = coords.X;
+        tile.Y = coords.Y;
+
+        var offsets = CoordinatesToOffsets(coords.X, coords.Y);
+        tile.OffsetX = offsets.X;
+        tile.OffsetY = offsets.Y;
     }
 
     private void UpdateCoordinateEditorUi()
     {
-        EditXLabel.Text = IsOffsetMode ? "Offset X:" : "X:";
-        EditYLabel.Text = IsOffsetMode ? "Offset Y:" : "Y:";
+        EditXLabel.Text = IsOffsetMode ? "Offset X:" : "Game X:";
+        EditYLabel.Text = IsOffsetMode ? "Offset Y:" : "Game Y:";
 
         if (_currentSelectedTile == null) return;
 
@@ -933,11 +975,15 @@ public partial class MainWindow : Window
         {
             EditXBox.Value = (decimal)_currentSelectedTile.OffsetX;
             EditYBox.Value = (decimal)_currentSelectedTile.OffsetY;
+            EditXBox.Increment = 1.0m;
+            EditYBox.Increment = 1.0m;
         }
         else
         {
-            EditXBox.Value = (decimal)_currentSelectedTile.X;
-            EditYBox.Value = (decimal)_currentSelectedTile.Y;
+            EditXBox.Value = (decimal)_currentSelectedTile.GameX;
+            EditYBox.Value = (decimal)_currentSelectedTile.GameY;
+            EditXBox.Increment = 4500.0m;
+            EditYBox.Increment = 4500.0m;
         }
         _isUpdatingBoxes = false;
     }
