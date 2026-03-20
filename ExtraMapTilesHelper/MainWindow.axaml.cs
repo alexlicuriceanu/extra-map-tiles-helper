@@ -96,6 +96,16 @@ public partial class MainWindow : Window
     private void OnResetViewClicked(object? sender, RoutedEventArgs e) => _camera.ResetView();
     private void OnCoordinateModeToggled(object? sender, RoutedEventArgs e) => UpdateCoordinateEditorUi();
 
+    private void OnRemoveTileClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_selectionController.CurrentTile is { } tile && _selectionController.CurrentImage is { } image)
+        {
+            MapCanvas.Children.Remove(image);
+            PlacedTiles.Remove(tile);
+            _selectionController.ClearSelection();
+        }
+    }
+
     private async void OnImportClicked(object? sender, RoutedEventArgs e)
     {
         await _projectController.ImportYtdsAsync(
@@ -275,6 +285,10 @@ public partial class MainWindow : Window
 
             MapCanvas.Children.Add(mapImage);
             PlacedTiles.Add(placedTile);
+
+            // NEW: Automatically select the newly placed tile
+            _selectionController.SelectTile(placedTile, mapImage);
+            PlacedTilesList.SelectedItem = placedTile;
         }
     }
 

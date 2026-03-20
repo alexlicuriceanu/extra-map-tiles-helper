@@ -175,14 +175,21 @@
                                     </StackPanel>
                                 </StackPanel>
 
-                                <ToggleSwitch x:Name="CoordinateModeToggle"
-                                              DockPanel.Dock="Top"
-                                              OffContent="Coordinate Mode"
-                                              OnContent="Offset Mode"
-                                              IsChecked="True"
-                                              Checked="OnCoordinateModeToggled"
-                                              Unchecked="OnCoordinateModeToggled"
-                                              Margin="0,0,0,10"/>
+                                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                                    <Button DockPanel.Dock="Right"
+                                            Content="Remove"
+                                            Background="#d13438"
+                                            Foreground="White"
+                                            VerticalAlignment="Center"
+                                            Click="OnRemoveTileClicked"/>
+                                    
+                                    <ToggleSwitch x:Name="CoordinateModeToggle"
+                                                  OffContent="Coordinate Mode"
+                                                  OnContent="Offset Mode"
+                                                  IsChecked="True"
+                                                  Checked="OnCoordinateModeToggled"
+                                                  Unchecked="OnCoordinateModeToggled"/>
+                                </DockPanel>
 
                                 <Grid RowDefinitions="Auto, Auto, Auto" ColumnDefinitions="Auto, *" DockPanel.Dock="Top">
                                     <TextBlock x:Name="EditXLabel" Grid.Row="0" Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
