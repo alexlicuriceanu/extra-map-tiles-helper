@@ -23,7 +23,7 @@ public sealed class TileSnappingEngine
         foreach (var child in mapCanvas.Children)
         {
             if (child is not Control ctrl) continue;
-            if (ctrl.Tag is not TextureItem && ctrl.Tag is not PlacedTile) continue;
+            if (ctrl.Tag is not TextureItem && ctrl.Tag is not PlacedTileItem) continue;
 
             double tileX = Canvas.GetLeft(ctrl);
             double tileY = Canvas.GetTop(ctrl);

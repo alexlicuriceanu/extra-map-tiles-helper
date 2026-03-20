@@ -18,11 +18,11 @@ public partial class MainWindow : Window
 {
     public ObservableCollection<TextureItem> Textures { get; } = new();
     public ObservableCollection<DictionaryItem> Dictionaries { get; } = new();
-    public ObservableCollection<PlacedTile> PlacedTiles { get; } = new();
+    public ObservableCollection<PlacedTileItem> PlacedTiles { get; } = new();
 
     private readonly TileSnappingEngine _snappingEngine = new();
-    private readonly DefaultTilesManager _defaultTilesManager = new();
-    private readonly MapCameraController _cameraController;
+    private readonly DefaultTiles _defaultTiles = new();
+    private readonly Camera _camera;
     private readonly TilePositionHelper _tilePositionHelper = new();
     private readonly SelectionController _selectionController;
     private readonly ProjectController _projectController;
@@ -35,7 +35,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        _cameraController = new MapCameraController(MapScrollViewer, MapZoomTransform);
+        _camera = new Camera(MapScrollViewer, MapZoomTransform);
         _selectionController = new SelectionController(_tilePositionHelper);
         _projectController = new ProjectController(new YtdService());
 
@@ -64,8 +64,8 @@ public partial class MainWindow : Window
             Height = screen.WorkingArea.Height / scaling * 0.8;
         }
 
-        _cameraController.ResetView();
-        _defaultTilesManager.LoadTiles(MapCanvas);
+        _camera.ResetView();
+        _defaultTiles.LoadTiles(MapCanvas);
     }
 
     private void SetStatus(string message)
@@ -84,7 +84,7 @@ public partial class MainWindow : Window
     private void OnToggleDefaultTilesClicked(object? sender, RoutedEventArgs e)
     {
         if (sender is MenuItem menuItem)
-            _defaultTilesManager.SetVisible(menuItem.IsChecked == true);
+            _defaultTiles.SetVisible(menuItem.IsChecked == true);
     }
 
     private void OnToggleTileSnappingClicked(object? sender, RoutedEventArgs e)
@@ -93,7 +93,7 @@ public partial class MainWindow : Window
             _snappingEngine.IsSnappingEnabled = menuItem.IsChecked == true;
     }
 
-    private void OnResetViewClicked(object? sender, RoutedEventArgs e) => _cameraController.ResetView();
+    private void OnResetViewClicked(object? sender, RoutedEventArgs e) => _camera.ResetView();
     private void OnCoordinateModeToggled(object? sender, RoutedEventArgs e) => UpdateCoordinateEditorUi();
 
     private async void OnImportClicked(object? sender, RoutedEventArgs e)
@@ -129,16 +129,16 @@ public partial class MainWindow : Window
             _selectionController.ClearSelection();
         }
 
-        _cameraController.BeginPan(sender, e);
+        _camera.BeginPan(sender, e);
     }
 
-    private void OnMapPointerMoved(object? sender, PointerEventArgs e) => _cameraController.Pan(e);
-    private void OnMapPointerReleased(object? sender, PointerReleasedEventArgs e) => _cameraController.EndPan(e);
+    private void OnMapPointerMoved(object? sender, PointerEventArgs e) => _camera.Pan(e);
+    private void OnMapPointerReleased(object? sender, PointerReleasedEventArgs e) => _camera.EndPan(e);
 
     private void OnMapPointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
         double zoomFactor = e.Delta.Y > 0 ? 1.15 : 0.85;
-        _cameraController.ZoomAtViewportPoint(zoomFactor, e.GetPosition(MapScrollViewer));
+        _camera.ZoomAtViewportPoint(zoomFactor, e.GetPosition(MapScrollViewer));
         e.Handled = true;
     }
 
@@ -224,7 +224,7 @@ public partial class MainWindow : Window
         DragHighlight.IsVisible = false;
         DragHighlightImage.Source = null;
 
-        if (e.Data.Contains("MovePlacedTile") && e.Data.Get("MovePlacedTile") is PlacedTile moveTile && e.Data.Get("SourceImage") is Image sourceImage)
+        if (e.Data.Contains("MovePlacedTile") && e.Data.Get("MovePlacedTile") is PlacedTileItem moveTile && e.Data.Get("SourceImage") is Image sourceImage)
         {
             var dropPosition = e.GetPosition(MapCanvas);
             var finalPosition = _snappingEngine.GetSnappedPosition(dropPosition, MapCanvas);
@@ -247,7 +247,7 @@ public partial class MainWindow : Window
                 canvasBitmap = Avalonia.Media.Imaging.Bitmap.DecodeToWidth(stream, 1024);
             }
 
-            var placedTile = new PlacedTile { Texture = item };
+            var placedTile = new PlacedTileItem { Texture = item };
             _tilePositionHelper.UpdateFromCoordinates(placedTile, finalPosition.X, finalPosition.Y);
 
             var mapImage = new Image
@@ -277,7 +277,7 @@ public partial class MainWindow : Window
         var point = e.GetCurrentPoint(sender as Control);
         if (!point.Properties.IsLeftButtonPressed) return;
 
-        if (sender is Image mapImage && mapImage.Tag is PlacedTile tile)
+        if (sender is Image mapImage && mapImage.Tag is PlacedTileItem tile)
         {
             _selectionController.SelectTile(tile, mapImage);
             PlacedTilesList.SelectedItem = tile;
@@ -303,7 +303,7 @@ public partial class MainWindow : Window
         var distanceSq = Math.Pow(currentPosition.X - _tileDragStartPoint.Value.X, 2) +
                          Math.Pow(currentPosition.Y - _tileDragStartPoint.Value.Y, 2);
 
-        if (distanceSq > 9 && sender is Image mapImage && mapImage.Tag is PlacedTile tile)
+        if (distanceSq > 9 && sender is Image mapImage && mapImage.Tag is PlacedTileItem tile)
         {
             _isDraggingTile = true;
 
@@ -325,7 +325,7 @@ public partial class MainWindow : Window
 
     private void OnPlacedTilesListSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (PlacedTilesList.SelectedItem is not PlacedTile tile)
+        if (PlacedTilesList.SelectedItem is not PlacedTileItem tile)
         {
             _selectionController.ClearSelection();
             return;
@@ -336,7 +336,7 @@ public partial class MainWindow : Window
             _selectionController.SelectTile(tile, mapImage);
     }
 
-    private void OnSelectionChanged(PlacedTile? tile, Image? image)
+    private void OnSelectionChanged(PlacedTileItem? tile, Image? image)
     {
         if (tile == null || image == null)
         {
@@ -363,7 +363,7 @@ public partial class MainWindow : Window
         UpdateCoordinateEditorUi();
     }
 
-    private void OnTilePositionUpdated(PlacedTile tile)
+    private void OnTilePositionUpdated(PlacedTileItem tile)
     {
         var selectedImage = _selectionController.CurrentImage;
         if (selectedImage == null) return;

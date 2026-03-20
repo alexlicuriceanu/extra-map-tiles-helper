@@ -84,9 +84,9 @@ public sealed class ProjectController
     public void RemoveDictionary(
         DictionaryItem dictionary,
         ObservableCollection<DictionaryItem> dictionaries,
-        ObservableCollection<PlacedTile> placedTiles,
+        ObservableCollection<PlacedTileItem> placedTiles,
         Canvas mapCanvas,
-        PlacedTile? currentSelectedTile,
+        PlacedTileItem? currentSelectedTile,
         Action clearSelection)
     {
         var placedTilesToRemove = placedTiles
@@ -95,7 +95,7 @@ public sealed class ProjectController
 
         var imageTilesToRemove = mapCanvas.Children
             .OfType<Image>()
-            .Where(img => img.Tag is PlacedTile tile &&
+            .Where(img => img.Tag is PlacedTileItem tile &&
                           string.Equals(tile.YtdName, dictionary.Name, StringComparison.Ordinal))
             .ToList();
 

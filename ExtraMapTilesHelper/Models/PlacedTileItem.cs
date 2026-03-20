@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace ExtraMapTilesHelper.Models;
 
-public class PlacedTile : INotifyPropertyChanged
+public class PlacedTileItem : INotifyPropertyChanged
 {
     private double _x;
     private double _y;

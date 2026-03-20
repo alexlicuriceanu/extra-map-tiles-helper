@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace ExtraMapTilesHelper.Services;
 
-public sealed class DefaultTilesManager
+public sealed class DefaultTiles
 {
     private readonly List<Image> _defaultTiles = new();
 

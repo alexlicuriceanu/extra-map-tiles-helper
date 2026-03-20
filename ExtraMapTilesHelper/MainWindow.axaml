@@ -201,7 +201,7 @@
     <!-- ListBox inherently is scrollable when bounded inside a container -->
     <ListBox x:Name="PlacedTilesList" Background="Transparent" Foreground="White" BorderThickness="0" Margin="0,5,0,0" SelectionChanged="OnPlacedTilesListSelectionChanged">
                             <ListBox.ItemTemplate>
-                                <DataTemplate DataType="models:PlacedTile">
+                                <DataTemplate DataType="models:PlacedTileItem">
                                     <StackPanel Margin="0,0,0,5">
                                         <TextBlock Text="{Binding TxdName}" FontWeight="Bold" Foreground="White"/>
                                         <TextBlock Text="{Binding YtdName, StringFormat='YTD: {0}'}" FontSize="11" Opacity="0.8"/>

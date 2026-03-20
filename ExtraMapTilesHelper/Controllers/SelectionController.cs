@@ -14,13 +14,13 @@ public sealed class SelectionController
         _tilePositionHelper = tilePositionHelper;
     }
 
-    public PlacedTile? CurrentTile { get; private set; }
+    public PlacedTileItem? CurrentTile { get; private set; }
     public Image? CurrentImage { get; private set; }
 
-    public event Action<PlacedTile?, Image?>? SelectionChanged;
-    public event Action<PlacedTile>? TilePositionUpdated;
+    public event Action<PlacedTileItem?, Image?>? SelectionChanged;
+    public event Action<PlacedTileItem>? TilePositionUpdated;
 
-    public void SelectTile(PlacedTile tile, Image image)
+    public void SelectTile(PlacedTileItem tile, Image image)
     {
         CurrentTile = tile;
         CurrentImage = image;

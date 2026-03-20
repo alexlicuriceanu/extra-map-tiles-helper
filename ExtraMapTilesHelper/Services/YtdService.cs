@@ -8,8 +8,8 @@ using CodeWalker.GameFiles;
 using ExtraMapTilesHelper.Models;
 using Pfim;
 using SkiaSharp;
-using System.Collections.Concurrent; // Add this to your usings at the top!
-using System.Threading.Tasks;        // Add this to your usings at the top!
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
 
 namespace ExtraMapTilesHelper.Services;
 

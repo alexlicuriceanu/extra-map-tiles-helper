@@ -4,7 +4,7 @@ namespace ExtraMapTilesHelper.Services;
 
 public sealed class TilePositionHelper
 {
-    public void UpdateFromCoordinates(PlacedTile tile, double x, double y)
+    public void UpdateFromCoordinates(PlacedTileItem tile, double x, double y)
     {
         tile.X = x;
         tile.Y = y;
@@ -18,7 +18,7 @@ public sealed class TilePositionHelper
         tile.GameY = game.Y;
     }
 
-    public void UpdateFromOffsets(PlacedTile tile, double ox, double oy)
+    public void UpdateFromOffsets(PlacedTileItem tile, double ox, double oy)
     {
         tile.OffsetX = ox;
         tile.OffsetY = oy;
@@ -32,7 +32,7 @@ public sealed class TilePositionHelper
         tile.GameY = game.Y;
     }
 
-    public void UpdateFromGame(PlacedTile tile, double gx, double gy)
+    public void UpdateFromGame(PlacedTileItem tile, double gx, double gy)
     {
         tile.GameX = gx;
         tile.GameY = gy;
