@@ -103,11 +103,7 @@ public partial class MainWindow : Window
     {
         if (sender is MenuItem menuItem)
         {
-            bool isVisible = menuItem.IsChecked == true;
-            foreach (var tile in _defaultTiles)
-            {
-                tile.IsVisible = isVisible;
-            }
+            _defaultTilesManager.SetVisible(menuItem.IsChecked == true);
         }
     }
 
@@ -115,29 +111,11 @@ public partial class MainWindow : Window
     {
         if (sender is MenuItem menuItem)
         {
-            _isSnappingEnabled = menuItem.IsChecked == true;
+            _snappingEngine.IsSnappingEnabled = menuItem.IsChecked == true;
         }
     }
 
-    private void ResetView()
-    {
-        _zoomLevel = DefaultZoom;
-        MapZoomTransform.LayoutTransform = new ScaleTransform(_zoomLevel, _zoomLevel);
-        MapScrollViewer.UpdateLayout();
-        CenterViewOnMap();
-    }
-
-    private void CenterViewOnMap()
-    {
-        // The logical center point where the red dot is
-        double mapCenterX = 49920 * _zoomLevel;
-        double mapCenterY = 49920 * _zoomLevel;
-
-        double viewportHalfWidth = MapScrollViewer.Viewport.Width / 2;
-        double viewportHalfHeight = MapScrollViewer.Viewport.Height / 2;
-
-        MapScrollViewer.Offset = new Avalonia.Vector(mapCenterX - viewportHalfWidth, mapCenterY - viewportHalfHeight);
-    }
+    private void ResetView() => _cameraController.ResetView();
 
     private void ZoomAtViewportPoint(double zoomFactor, Avalonia.Point viewportPoint)
     {
@@ -170,89 +148,27 @@ public partial class MainWindow : Window
 
     private void OnMapPointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
-        double zoomFactor = e.Delta.Y > 0 ? ZoomInSpeed : ZoomOutSpeed;
-        ZoomAtViewportPoint(zoomFactor, e.GetPosition(MapScrollViewer));
+        double zoomFactor = e.Delta.Y > 0 ? 1.15 : 0.85;
+        _cameraController.ZoomAtViewportPoint(zoomFactor, e.GetPosition(MapScrollViewer));
         e.Handled = true;
     }
 
-    private void OnResetViewClicked(object? sender, RoutedEventArgs e)
-    {
-        ResetView();
-    }
-
-    private void OnZoomInClicked(object? sender, RoutedEventArgs e)
-    {
-        ZoomAtViewportCenter(ZoomInSpeed);
-    }
-
-    private void OnZoomOutClicked(object? sender, RoutedEventArgs e)
-    {
-        ZoomAtViewportCenter(ZoomOutSpeed);
-    }
+    private void OnZoomInClicked(object? sender, RoutedEventArgs e) => _cameraController.ZoomAtViewportCenter(1.15);
+    private void OnZoomOutClicked(object? sender, RoutedEventArgs e) => _cameraController.ZoomAtViewportCenter(0.85);
 
     private void OnMapPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         var point = e.GetCurrentPoint(sender as Control);
-
-        // Allow clicking on the empty canvas to deselect any currently selected tile
         if (point.Properties.IsLeftButtonPressed)
         {
             PlacedTilesList.SelectedItem = null;
         }
 
-        // 1. Only trigger if they clicked the Middle Mouse Button (Scroll Wheel)
-        if (point.Properties.IsMiddleButtonPressed)
-        {
-            _isPanning = true;
-
-            // Record exactly where the mouse was when they clicked
-            _lastPanPoint = e.GetPosition(MapScrollViewer);
-
-            // Change the cursor to indicate we are grabbing the map
-            MapScrollViewer.Cursor = new Cursor(StandardCursorType.SizeAll);
-
-            // "Capture" the pointer so if they drag outside the window, it doesn't break the pan
-            e.Pointer.Capture(sender as Avalonia.Input.InputElement);
-            e.Handled = true;
-        }
+        _cameraController.BeginPan(sender, e);
     }
 
-    private void OnMapPointerMoved(object? sender, PointerEventArgs e)
-    {
-        // 2. If we aren't currently panning, do nothing
-        if (!_isPanning) return;
-
-        var currentPoint = e.GetPosition(MapScrollViewer);
-
-        // Calculate the physical distance the mouse moved since the last frame
-        double deltaX = _lastPanPoint.X - currentPoint.X;
-        double deltaY = _lastPanPoint.Y - currentPoint.Y;
-
-        // Apply that exact movement to the ScrollViewer's offset
-        MapScrollViewer.Offset = new Avalonia.Vector(
-            MapScrollViewer.Offset.X + deltaX,
-            MapScrollViewer.Offset.Y + deltaY
-        );
-
-        // Update the last point for the next frame
-        _lastPanPoint = currentPoint;
-    }
-
-    private void OnMapPointerReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        // 3. Stop panning when they let go of the middle mouse button
-        if (_isPanning && e.InitialPressMouseButton == MouseButton.Middle)
-        {
-            _isPanning = false;
-
-            // Reset the cursor back to normal
-            MapScrollViewer.Cursor = Cursor.Default;
-
-            // Release the captured mouse
-            e.Pointer.Capture(null);
-            e.Handled = true;
-        }
-    }
+    private void OnMapPointerMoved(object? sender, PointerEventArgs e) => _cameraController.Pan(e);
+    private void OnMapPointerReleased(object? sender, PointerReleasedEventArgs e) => _cameraController.EndPan(e);
 
     public ObservableCollection<DictionaryItem> Dictionaries { get; } = new();
     public ObservableCollection<PlacedTile> PlacedTiles { get; } = new();
@@ -264,6 +180,10 @@ public partial class MainWindow : Window
     // --- NEW: Grid Tile Dragging Trackers ---
     private Point? _tileDragStartPoint;
     private bool _isDraggingTile = false;
+
+    private readonly MapCameraController _cameraController;
+    private readonly TileSnappingEngine _snappingEngine = new();
+    private readonly DefaultTilesManager _defaultTilesManager = new();
 
     public MainWindow()
     {
@@ -282,6 +202,8 @@ public partial class MainWindow : Window
 
         Dictionaries.CollectionChanged += (s, e) => UpdateDictionaryCount();
         UpdateDictionaryCount();
+
+        _cameraController = new MapCameraController(MapScrollViewer, MapZoomTransform);
     }
 
     private void UpdateDictionaryCount()
@@ -297,10 +219,8 @@ public partial class MainWindow : Window
 
     private void OnCanvasDragEnter(object? sender, DragEventArgs e)
     {
-        _lastSnappedPosition = new Point(-1000, -1000);
-        _spatialHash.Clear();
+        _snappingEngine.PrepareDrag(MapCanvas);
 
-        // --- NEW: Assign the visual preview source! ---
         if (e.Data.Contains("DragImage") && e.Data.Get("DragImage") is Avalonia.Media.Imaging.Bitmap bmp)
         {
             DragHighlightImage.Source = bmp;
@@ -313,142 +233,10 @@ public partial class MainWindow : Window
         {
             DragHighlightImage.Source = null;
         }
-
-        foreach (var child in MapCanvas.Children)
-        {
-            if (child is Control ctrl && (ctrl.Tag is TextureItem || ctrl.Tag is PlacedTile))
-            {
-                double tileX = Canvas.GetLeft(ctrl);
-                double tileY = Canvas.GetTop(ctrl);
-
-                double tileW = double.IsNaN(ctrl.Width) ? GridCellSize : ctrl.Width;
-                double tileH = double.IsNaN(ctrl.Height) ? GridCellSize : ctrl.Height;
-
-                int bucketX = (int)(tileX / GridCellSize);
-                int bucketY = (int)(tileY / GridCellSize);
-                var bucketKey = (bucketX, bucketY);
-
-                if (!_spatialHash.ContainsKey(bucketKey))
-                {
-                    _spatialHash[bucketKey] = new System.Collections.Generic.List<Avalonia.Rect>();
-                }
-
-                _spatialHash[bucketKey].Add(new Avalonia.Rect(tileX, tileY, tileW, tileH));
-            }
-        }
-    }
-
-    private Point CalculateDropPosition(Point mousePosition)
-    {
-        double targetX = mousePosition.X - (GridCellSize / 2);
-        double targetY = mousePosition.Y - (GridCellSize / 2);
-
-        double maxX = (double.IsNaN(MapCanvas.Width) ? 100000 : MapCanvas.Width) - GridCellSize;
-        double maxY = (double.IsNaN(MapCanvas.Height) ? 100000 : MapCanvas.Height) - GridCellSize;
-
-        targetX = Math.Clamp(targetX, 0, maxX);
-        targetY = Math.Clamp(targetY, 0, maxY);
-
-        if (!_isSnappingEnabled)
-        {
-            return new Point(targetX, targetY);
-        }
-
-        // --- NEW: DISTANCE SQUARED MATH ---
-        double snapThreshold = 48.0;
-        double bestDistSq = snapThreshold * snapThreshold; // 2304
-
-        Point bestSnap = new Point(targetX, targetY);
-        bool foundSnap = false;
-
-        // 1. Calculate the closest Grid Snap Point
-        double gridX = Math.Round(targetX / GridCellSize) * GridCellSize;
-        double gridY = Math.Round(targetY / GridCellSize) * GridCellSize;
-
-        // Clamp to Canvas Map Bounds
-        gridX = Math.Clamp(gridX, 0, maxX);
-        gridY = Math.Clamp(gridY, 0, maxY);
-
-        double distToGridSq = Math.Pow(targetX - gridX, 2) + Math.Pow(targetY - gridY, 2);
-        if (distToGridSq < bestDistSq)
-        {
-            bestDistSq = distToGridSq;
-            bestSnap = new Point(gridX, gridY);
-            foundSnap = true;
-        }
-
-        // 2. Calculate the closest Tile Snap Point
-        // 1. What bucket is the mouse currently in?
-        int mouseBucketX = (int)(targetX / GridCellSize);
-        int mouseBucketY = (int)(targetY / GridCellSize);
-
-        // 2. Calculate the closest Tile Snap Point using the true bounding boxes
-        for (int bx = mouseBucketX - 2; bx <= mouseBucketX + 2; bx++)
-        {
-            for (int by = mouseBucketY - 2; by <= mouseBucketY + 2; by++)
-            {
-                if (_spatialHash.TryGetValue((bx, by), out var tilesInBucket))
-                {
-                    foreach (var cachedRect in tilesInBucket)
-                    {
-                        double imgX = cachedRect.X;
-                        double imgY = cachedRect.Y;
-                        double imgW = cachedRect.Width;
-                        double imgH = cachedRect.Height;
-
-                        // Broad-phase using true sizes
-                        if (Math.Abs(imgX - targetX) > (Math.Max(GridCellSize, imgW) + snapThreshold) ||
-                            Math.Abs(imgY - targetY) > (Math.Max(GridCellSize, imgH) + snapThreshold))
-                        {
-                            continue;
-                        }
-
-                        // 9 Magnetic Points: The 8 edges + the exact overlap center!
-                        Point[] snapPoints = new Point[]
-                        {
-                            new Point(imgX - GridCellSize, imgY),
-                            new Point(imgX + imgW, imgY),
-                            new Point(imgX, imgY - GridCellSize),
-                            new Point(imgX, imgY + imgH),
-                            new Point(imgX - GridCellSize, imgY - GridCellSize),
-                            new Point(imgX + imgW, imgY - GridCellSize),
-                            new Point(imgX - GridCellSize, imgY + imgH),
-                            new Point(imgX + imgW, imgY + imgH),
-                            new Point(imgX, imgY) // NEW: Snap directly on top of the tile!
-                        };
-
-                        foreach (var sp in snapPoints)
-                        {
-                            if (sp.X < 0 || sp.Y < 0 || sp.X > maxX || sp.Y > maxY) continue; // Check bounds
-
-                            double distSq = Math.Pow(targetX - sp.X, 2) + Math.Pow(targetY - sp.Y, 2);
-
-                            // THE FIX: We add a +25 buffer to bestDistSq. 
-                            // This means if a tile edge is even *slightly* further away than an empty grid line, 
-                            // the tile still wins the tug-of-war!
-                            if (distSq <= bestDistSq + 25)
-                            {
-                                bestDistSq = distSq;
-                                bestSnap = sp;
-                                foundSnap = true;
-
-                                if (bestDistSq < 1.0)
-                                {
-                                    return bestSnap;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return foundSnap ? bestSnap : new Point(targetX, targetY);
     }
 
     private void OnCanvasDragOver(object? sender, DragEventArgs e)
     {
-        // 1. Differentiate between a new texture from the sidebar and a PlacedTile being moved
         if (!e.Data.Contains("DraggedTexture") && !e.Data.Contains("MovePlacedTile"))
         {
             e.DragEffects = DragDropEffects.None;
@@ -459,34 +247,25 @@ public partial class MainWindow : Window
         e.DragEffects = e.Data.Contains("MovePlacedTile") ? DragDropEffects.Move : DragDropEffects.Copy;
         var position = e.GetPosition(MapCanvas);
 
-        // --- NEW: THE THROTTLE ---
-        // If the mouse hasn't moved at least 5 pixels since the last calculation, skip the heavy math!
-        double rawDistSq = Math.Pow(position.X - _lastRawMousePosition.X, 2) + Math.Pow(position.Y - _lastRawMousePosition.Y, 2);
-        if (rawDistSq < 25) // 5 pixels squared
-        {
-            e.Handled = true;
-            return;
-        }
-        _lastRawMousePosition = position; // Update the tracker
-
-        var snappedPosition = CalculateDropPosition(position);
-
-        if (snappedPosition == _lastSnappedPosition)
+        if (!_snappingEngine.ShouldRecalculate(position))
         {
             e.Handled = true;
             return;
         }
 
-        _lastSnappedPosition = snappedPosition;
+        var snappedPosition = _snappingEngine.GetSnappedPosition(position, MapCanvas);
 
-        // THE FIX: Use Canvas positioning so Avalonia cleans up the old pixels!
+        if (_snappingEngine.IsSameSnappedPosition(snappedPosition))
+        {
+            e.Handled = true;
+            return;
+        }
+
+        _snappingEngine.SetLastSnappedPosition(snappedPosition);
+
         Canvas.SetLeft(DragHighlight, snappedPosition.X);
         Canvas.SetTop(DragHighlight, snappedPosition.Y);
-
-        if (!DragHighlight.IsVisible)
-        {
-            DragHighlight.IsVisible = true;
-        }
+        if (!DragHighlight.IsVisible) DragHighlight.IsVisible = true;
 
         e.Handled = true;
     }
@@ -619,7 +398,7 @@ public partial class MainWindow : Window
         if (e.Data.Contains("MovePlacedTile") && e.Data.Get("MovePlacedTile") is PlacedTile moveTile && e.Data.Get("SourceImage") is Image sourceImage)
         {
             var dropPosition = e.GetPosition(MapCanvas);
-            var finalPosition = CalculateDropPosition(dropPosition);
+            var finalPosition = _snappingEngine.GetSnappedPosition(dropPosition, MapCanvas);
 
             // Update both coordinate systems in one place
             SetTilePositionFromCoordinates(moveTile, finalPosition.X, finalPosition.Y);
@@ -640,7 +419,7 @@ public partial class MainWindow : Window
         else if (e.Data.Contains("DraggedTexture") && e.Data.Get("DraggedTexture") is TextureItem item)
         {
             var dropPosition = e.GetPosition(MapCanvas);
-            var finalPosition = CalculateDropPosition(dropPosition);
+            var finalPosition = _snappingEngine.GetSnappedPosition(dropPosition, MapCanvas);
 
             // Decode at cell size (lower memory than 1024 for this use-case)
             Avalonia.Media.Imaging.Bitmap canvasBitmap;
@@ -892,45 +671,16 @@ public partial class MainWindow : Window
 
     private bool IsOffsetMode => CoordinateModeToggle.IsChecked == true;
 
-    private Point CoordinatesToOffsets(double x, double y)
-    {
-        return new Point(
-            (x - OriginTileX) / GridCellSize,
-            (y - OriginTileY) / GridCellSize);
-    }
-
-    private Point OffsetsToCoordinates(double offsetX, double offsetY)
-    {
-        return new Point(
-            OriginTileX + (offsetX * GridCellSize),
-            OriginTileY + (offsetY * GridCellSize));
-    }
-
-    private Point CoordinatesToGame(double x, double y)
-    {
-        var offsets = CoordinatesToOffsets(x, y);
-        return new Point(
-            GameOriginX + (offsets.X * GameTileSize),
-            GameOriginY + (offsets.Y * GameTileSize));
-    }
-
-    private Point GameToCoordinates(double gameX, double gameY)
-    {
-        double offsetX = (gameX - GameOriginX) / GameTileSize;
-        double offsetY = (gameY - GameOriginY) / GameTileSize;
-        return OffsetsToCoordinates(offsetX, offsetY);
-    }
-
     private void SetTilePositionFromCoordinates(PlacedTile tile, double x, double y)
     {
         tile.X = x;
         tile.Y = y;
 
-        var offsets = CoordinatesToOffsets(x, y);
+        var offsets = CoordinateMapper.CoordinatesToOffsets(x, y);
         tile.OffsetX = offsets.X;
         tile.OffsetY = offsets.Y;
 
-        var game = CoordinatesToGame(x, y);
+        var game = CoordinateMapper.CoordinatesToGame(x, y);
         tile.GameX = game.X;
         tile.GameY = game.Y;
     }
@@ -940,11 +690,11 @@ public partial class MainWindow : Window
         tile.OffsetX = offsetX;
         tile.OffsetY = offsetY;
 
-        var coords = OffsetsToCoordinates(offsetX, offsetY);
+        var coords = CoordinateMapper.OffsetsToCoordinates(offsetX, offsetY);
         tile.X = coords.X;
         tile.Y = coords.Y;
 
-        var game = CoordinatesToGame(coords.X, coords.Y);
+        var game = CoordinateMapper.CoordinatesToGame(coords.X, coords.Y);
         tile.GameX = game.X;
         tile.GameY = game.Y;
     }
@@ -954,11 +704,11 @@ public partial class MainWindow : Window
         tile.GameX = gameX;
         tile.GameY = gameY;
 
-        var coords = GameToCoordinates(gameX, gameY);
+        var coords = CoordinateMapper.GameToCoordinates(gameX, gameY);
         tile.X = coords.X;
         tile.Y = coords.Y;
 
-        var offsets = CoordinatesToOffsets(coords.X, coords.Y);
+        var offsets = CoordinateMapper.CoordinatesToOffsets(coords.X, coords.Y);
         tile.OffsetX = offsets.X;
         tile.OffsetY = offsets.Y;
     }
@@ -992,4 +742,6 @@ public partial class MainWindow : Window
     {
         UpdateCoordinateEditorUi();
     }
+
+    private void OnResetViewClicked(object? sender, RoutedEventArgs e) => _cameraController.ResetView();
 }
