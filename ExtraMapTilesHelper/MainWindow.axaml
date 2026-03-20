@@ -53,7 +53,7 @@
 					<TextBlock x:Name="DictionaryCountText" 
                                DockPanel.Dock="Top"
                                Text="Texture Dictionaries (0)"
-                               FontWeight="Bold"
+                               FontWeight="Normal"
                                Background="#2d2d30"
                                Foreground="White"
                                Padding="10"/>
@@ -75,7 +75,7 @@
 													  Click="OnRemoveDictionaryClicked" />
 										</ContextMenu>
 									</Border.ContextMenu>
-									<TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="White" Padding="0,5"/>
+									<TextBlock Text="{Binding Name}" FontWeight="Normal" Foreground="White" Padding="0,5"/>
 								</Border>
 							</TreeDataTemplate>
 
@@ -161,7 +161,7 @@
                         <DockPanel>
                             <TextBlock DockPanel.Dock="Top"
                                        Text="Selected Tile"
-                                       FontWeight="Bold"
+                                       FontWeight="Normal"
                                        Background="#2d2d30"
                                        Foreground="White"
                                        Padding="10"/>
@@ -170,7 +170,7 @@
                                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="0,0,0,15">
                                     <Image x:Name="SelectedTilePreview" Width="64" Height="64" Stretch="Uniform"/>
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock x:Name="SelectedTileName" FontWeight="Bold" Foreground="White"/>
+                                        <TextBlock x:Name="SelectedTileName" FontWeight="Normal" Foreground="White"/>
                                         <TextBlock x:Name="SelectedTileYtd" FontSize="11" Opacity="0.8"/>
                                     </StackPanel>
                                 </StackPanel>
@@ -184,12 +184,15 @@
                                               Unchecked="OnCoordinateModeToggled"
                                               Margin="0,0,0,10"/>
 
-                                <Grid RowDefinitions="Auto, Auto" ColumnDefinitions="Auto, *" DockPanel.Dock="Top">
+                                <Grid RowDefinitions="Auto, Auto, Auto" ColumnDefinitions="Auto, *" DockPanel.Dock="Top">
                                     <TextBlock x:Name="EditXLabel" Grid.Row="0" Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
                                     <NumericUpDown x:Name="EditXBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,10" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
 
-                                    <TextBlock x:Name="EditYLabel" Grid.Row="1" Grid.Column="0" Text="Y:" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <NumericUpDown x:Name="EditYBox" Grid.Row="1" Grid.Column="1" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
+                                    <TextBlock x:Name="EditYLabel" Grid.Row="1" Grid.Column="0" Text="Y:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                                    <NumericUpDown x:Name="EditYBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,10" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
+                                    
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Alpha:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <NumericUpDown x:Name="EditAlphaBox" Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Increment="1.0" ValueChanged="OnEditAlphaBoxValueChanged"/>
                                 </Grid>
                             </DockPanel>
                         </DockPanel>
@@ -197,27 +200,53 @@
 
                     <!-- Lower half for Placed Tiles Queue -->
                     <DockPanel Grid.Row="1" Background="#1e1e1e">
-    <TextBlock DockPanel.Dock="Top" Text="Placed Tiles Queue" FontWeight="Bold" Background="#2d2d30" Foreground="White" Padding="10"/>
+    <TextBlock DockPanel.Dock="Top" Text="Placed Tiles" FontWeight="Normal" Background="#2d2d30" Foreground="White" Padding="10"/>
     
     <!-- ListBox inherently is scrollable when bounded inside a container -->
     <ListBox x:Name="PlacedTilesList" Background="Transparent" Foreground="White" BorderThickness="0" Margin="0,5,0,0" SelectionChanged="OnPlacedTilesListSelectionChanged">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate DataType="models:PlacedTileItem">
-                                    <StackPanel Margin="0,0,0,5">
-                                        <TextBlock Text="{Binding TxdName}" FontWeight="Bold" Foreground="White"/>
-                                        <TextBlock Text="{Binding YtdName, StringFormat='YTD: {0}'}" FontSize="11" Opacity="0.8"/>
-                                        <TextBlock FontSize="11" Opacity="0.8">
-                                            <Run Text="Pos: ("/>
-                                            <Run Text="{Binding GameX}"/>
-                                            <Run Text=", "/>
-                                            <Run Text="{Binding GameY}"/>
-                                            <Run Text=")"/>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </DockPanel>
+        <ListBox.ItemTemplate>
+            <DataTemplate DataType="models:PlacedTileItem">
+                <!-- Wrap in horizontal StackPanel for image + text -->
+                <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,5">
+                    
+                    <!-- Added Thumbnail -->
+                    <Image Source="{Binding Texture.Preview}" Width="32" Height="32" Stretch="Uniform" VerticalAlignment="Center" />
+                    
+                    <!-- Original text layout retained perfectly -->
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock FontSize="11" Opacity="1.0">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="{}{0}">
+                                    <Binding Path="TxdName" />
+                                    <Binding Path="YtdName" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+
+                        <TextBlock FontSize="11" Opacity="0.5">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="Offsets XY: ({0:F2}, {1:F2})">
+                                    <Binding Path="OffsetX" />
+                                    <Binding Path="OffsetY" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+
+                        <TextBlock FontSize="11" Opacity="0.5">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="Coords XY: ({0:F2}, {1:F2})">
+                                    <Binding Path="GameX" />
+                                    <Binding Path="GameY" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </StackPanel>
+                    
+                </StackPanel>
+            </DataTemplate>
+        </ListBox.ItemTemplate>
+    </ListBox>
+</DockPanel>
                 </Grid>
             </Border>
 

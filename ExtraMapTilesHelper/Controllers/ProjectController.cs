@@ -65,11 +65,11 @@ public sealed class ProjectController
                     Dispatcher.UIThread.Post(() => dictionaries.Add(newDict));
 
                     current++;
-                    setStatus($"Loading dictionaries ({current}/{total})");
+                    setStatus($"Loading {dictName}.ytd ({current}/{total})");
                 }
             });
 
-            setStatus($"Loaded {total} Dictionaries");
+            setStatus($"Loaded {total} dictionaries");
         }
         catch
         {

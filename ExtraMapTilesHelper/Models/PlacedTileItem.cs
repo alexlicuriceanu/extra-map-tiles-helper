@@ -51,6 +51,7 @@ public class PlacedTileItem : INotifyPropertyChanged
 
     private double _gameX;
     private double _gameY;
+    private double _alpha = 100.0;
 
     // In-game coordinates
     public double GameX
@@ -63,6 +64,12 @@ public class PlacedTileItem : INotifyPropertyChanged
     {
         get => _gameY;
         set { if (_gameY != value) { _gameY = value; OnPropertyChanged(); } }
+    }
+
+    public double Alpha
+    {
+        get => _alpha;
+        set { if (_alpha != value) { _alpha = value; OnPropertyChanged(); } }
     }
 
     public string YtdName => Texture?.DictionaryName ?? string.Empty;

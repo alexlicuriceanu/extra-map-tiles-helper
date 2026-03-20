@@ -262,7 +262,8 @@ public partial class MainWindow : Window
                 Height = CoordinateMapper.CanvasTileSize,
                 Stretch = Stretch.Fill,
                 Tag = placedTile,
-                ZIndex = 6
+                ZIndex = 6,
+                Opacity = placedTile.Alpha / 100.0
             };
 
             mapImage.PointerPressed += OnPlacedTilePointerPressed;
@@ -392,6 +393,20 @@ public partial class MainWindow : Window
             isOffsetMode: IsOffsetMode);
     }
 
+    private void OnEditAlphaBoxValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (_isUpdatingBoxes || !e.NewValue.HasValue) return;
+
+        var tile = _selectionController.CurrentTile;
+        var image = _selectionController.CurrentImage;
+
+        if (tile != null && image != null)
+        {
+            tile.Alpha = (double)e.NewValue.Value;
+            image.Opacity = tile.Alpha / 100.0;
+        }
+    }
+
     private void OnDictionaryPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         var point = e.GetCurrentPoint(sender as Control);
@@ -430,6 +445,8 @@ public partial class MainWindow : Window
             EditXBox.Increment = 4500.0m;
             EditYBox.Increment = 4500.0m;
         }
+
+        EditAlphaBox.Value = (decimal)tile.Alpha;
 
         _isUpdatingBoxes = false;
     }
