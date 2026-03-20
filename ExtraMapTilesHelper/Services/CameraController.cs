@@ -6,7 +6,7 @@ using System;
 
 namespace ExtraMapTilesHelper.Services;
 
-public sealed class MapCameraController
+public sealed class CameraController
 {
     private readonly ScrollViewer _mapScrollViewer;
     private readonly LayoutTransformControl _mapZoomTransform;
@@ -19,7 +19,7 @@ public sealed class MapCameraController
     private bool _isPanning;
     private Point _lastPanPoint;
 
-    public MapCameraController(ScrollViewer mapScrollViewer, LayoutTransformControl mapZoomTransform)
+    public CameraController(ScrollViewer mapScrollViewer, LayoutTransformControl mapZoomTransform)
     {
         _mapScrollViewer = mapScrollViewer;
         _mapZoomTransform = mapZoomTransform;
@@ -51,6 +51,15 @@ public sealed class MapCameraController
         double newOffsetY = (absoluteY * _zoomLevel) - viewportPoint.Y;
 
         _mapScrollViewer.Offset = new Vector(newOffsetX, newOffsetY);
+    }
+
+    public void ZoomAtViewportCenter(double zoomFactor)
+    {
+        var center = new Point(
+            _mapScrollViewer.Viewport.Width / 2.0,
+            _mapScrollViewer.Viewport.Height / 2.0);
+
+        ZoomAtViewportPoint(zoomFactor, center);
     }
 
     public void BeginPan(object? sender, PointerPressedEventArgs e)

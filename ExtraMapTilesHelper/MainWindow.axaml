@@ -10,7 +10,6 @@
         MinWidth="512" MinHeight="360"
         WindowStartupLocation="CenterScreen"
         Loaded="OnMainWindowLoaded"
-        KeyDown="OnWindowKeyDown"
         Icon="Assets/icon.ico">
 
 	<LayoutTransformControl x:Name="RootTransform">
@@ -29,32 +28,9 @@
 				</MenuItem>
 
 				<MenuItem Header="_View">
-					<MenuItem Click="OnResetViewClicked" HotKey="Ctrl+R">
+					<MenuItem Click="OnResetViewClicked">
 						<MenuItem.Header>
-							<Grid ColumnDefinitions="*,Auto" MinWidth="180">
-								<TextBlock Grid.Column="0" Text="Reset View"/>
-								<TextBlock Grid.Column="1" Text="Ctrl+R" HorizontalAlignment="Right" Opacity="0.8"/>
-							</Grid>
-						</MenuItem.Header>
-					</MenuItem>
-
-					<Separator/>
-
-					<MenuItem Click="OnZoomInClicked" HotKey="Ctrl+OemPlus">
-						<MenuItem.Header>
-							<Grid ColumnDefinitions="*,Auto" MinWidth="180">
-								<TextBlock Grid.Column="0" Text="Zoom In"/>
-								<TextBlock Grid.Column="1" Text="Ctrl++" HorizontalAlignment="Right" Opacity="0.8"/>
-							</Grid>
-						</MenuItem.Header>
-					</MenuItem>
-
-					<MenuItem Click="OnZoomOutClicked" HotKey="Ctrl+OemMinus">
-						<MenuItem.Header>
-							<Grid ColumnDefinitions="*,Auto" MinWidth="180">
-								<TextBlock Grid.Column="0" Text="Zoom Out"/>
-								<TextBlock Grid.Column="1" Text="Ctrl+-" HorizontalAlignment="Right" Opacity="0.8"/>
-							</Grid>
+							<TextBlock Text="Reset View"/>
 						</MenuItem.Header>
 					</MenuItem>
 				</MenuItem>
