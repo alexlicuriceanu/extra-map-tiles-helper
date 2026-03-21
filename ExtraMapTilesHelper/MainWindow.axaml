@@ -3,7 +3,7 @@
         xmlns:models="using:ExtraMapTilesHelper.Models"
         x:Class="ExtraMapTilesHelper.MainWindow"
         Title="Extra Map Tiles Helper"
-        Background="#1e1e1e"
+        Background="#1c1c1c"
         Foreground="White"
         FontFamily="Segoe UI Variable, Segoe UI"
         FontSize="12"
@@ -14,7 +14,7 @@
 
 	<LayoutTransformControl x:Name="RootTransform">
 	<DockPanel>
-		<DockPanel DockPanel.Dock="Top" Background="#2d2d30">
+		<DockPanel DockPanel.Dock="Top" Background="#282828">
 			<!-- NEW: Status Indicator in the top right -->
 			<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="0,0,10,0" VerticalAlignment="Center">
 				<TextBlock x:Name="StatusText" Text="Ready" Foreground="White" VerticalAlignment="Center" Margin="0,0,10,0" />
@@ -46,7 +46,7 @@
 		<Grid ColumnDefinitions="300, *, 250">
 
 			<Border Grid.Column="0"
-        Background="#1e1e1e"
+        Background="#1c1c1c"
         BorderBrush="#3e3e42"
         BorderThickness="0,1,1,0">
 				<DockPanel>
@@ -54,7 +54,7 @@
                                DockPanel.Dock="Top"
                                Text="Texture Dictionaries (0)"
                                FontWeight="Normal"
-                               Background="#2d2d30"
+                               Background="#282828"
                                Foreground="White"
                                Padding="10"/>
 
@@ -151,18 +151,18 @@
             </ScrollViewer>
 
             <Border Grid.Column="2"
-        Background="#252526"
+        Background="#1c1c1c"
         BorderBrush="#3e3e42"
         BorderThickness="1,1,0,0">
                 <Grid RowDefinitions="*,*">
                     
                     <!-- Upper half: Selected Tile Properties -->
-                    <Border Grid.Row="0" BorderBrush="#3e3e42" BorderThickness="0,0,0,1" Background="#1e1e1e">
+                    <Border Grid.Row="0" BorderBrush="#3e3e42" BorderThickness="0,0,0,1" Background="#1c1c1c">
                         <DockPanel>
                             <TextBlock DockPanel.Dock="Top"
                                        Text="Selected Tile"
                                        FontWeight="Normal"
-                                       Background="#2d2d30"
+                                       Background="#282828"
                                        Foreground="White"
                                        Padding="10"/>
 
@@ -238,8 +238,8 @@
                     </Border>
 
                     <!-- Lower half for Placed Tiles Queue -->
-                    <DockPanel Grid.Row="1" Background="#1e1e1e">
-    <TextBlock DockPanel.Dock="Top" Text="Placed Tiles" FontWeight="Normal" Background="#2d2d30" Foreground="White" Padding="10"/>
+                    <DockPanel Grid.Row="1" Background="#1c1c1c">
+    <TextBlock DockPanel.Dock="Top" Text="Placed Tiles" FontWeight="Normal" Background="#282828" Foreground="White" Padding="10"/>
     
     <!-- ListBox inherently is scrollable when bounded inside a container -->
     <ListBox x:Name="PlacedTilesList" Background="Transparent" Foreground="White" BorderThickness="0" Margin="0,5,0,0" SelectionChanged="OnPlacedTilesListSelectionChanged">
