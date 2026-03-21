@@ -94,7 +94,16 @@ public partial class MainWindow : Window
     }
 
     private void OnResetViewClicked(object? sender, RoutedEventArgs e) => _camera.ResetView();
-    private void OnCoordinateModeToggled(object? sender, RoutedEventArgs e) => UpdateCoordinateEditorUi();
+    private void OnCoordinateModeToggled(object? sender, RoutedEventArgs e)
+    {
+        if (_isUpdatingBoxes) return;
+        
+        if (_selectionController.CurrentTile is { } tile)
+            tile.IsOffsetMode = CoordinateModeToggle.IsChecked == true;
+            
+        UpdateCoordinateEditorUi();
+    }
+    
     private void OnCenteredToggled(object? sender, RoutedEventArgs e)
     {
         if (_isUpdatingBoxes) return;
@@ -206,7 +215,7 @@ public partial class MainWindow : Window
             try
             {
                 var configService = new LuaConfigService();
-                string luaContent = configService.GenerateLuaConfig(PlacedTiles, IsOffsetMode);
+                string luaContent = configService.GenerateLuaConfig(PlacedTiles);
 
                 using (var stream = await selectedFile.OpenWriteAsync())
                 using (var writer = new System.IO.StreamWriter(stream))
@@ -214,7 +223,7 @@ public partial class MainWindow : Window
                     await writer.WriteAsync(luaContent);
                 }
 
-                SetStatus($"Successfully exported {PlacedTiles.Count} tiles to '{selectedFile.Name}'.");
+                SetStatus($"Successfully exported config to '{selectedFile.Path}'");
             }
             catch (Exception ex)
             {
@@ -418,7 +427,7 @@ public partial class MainWindow : Window
                 canvasBitmap = Avalonia.Media.Imaging.Bitmap.DecodeToWidth(stream, 1024);
             }
 
-            var placedTile = new PlacedTileItem { Texture = item, Centered = IsCenteredMode };
+            var placedTile = new PlacedTileItem { Texture = item, Centered = IsCenteredMode, IsOffsetMode = IsOffsetMode };
             _tilePositionHelper.UpdateFromCoordinates(placedTile, finalPosition.X, finalPosition.Y);
 
             var mapImage = new Image
@@ -574,7 +583,7 @@ public partial class MainWindow : Window
             _selectionController.UpdateTilePosition(
                 (double)e.NewValue.Value,
                 isX: sender == EditXBox,
-                isOffsetMode: IsOffsetMode);
+                isOffsetMode: tile.IsOffsetMode);
             return;
         }
 
@@ -584,7 +593,7 @@ public partial class MainWindow : Window
         double anchorX = tile.X + halfW;
         double anchorY = tile.Y + halfH;
 
-        if (IsOffsetMode)
+        if (tile.IsOffsetMode)
         {
             var currentAnchorOffsets = CoordinateMapper.CoordinatesToOffsets(anchorX, anchorY);
 
@@ -706,9 +715,6 @@ public partial class MainWindow : Window
 
     private void UpdateCoordinateEditorUi()
     {
-        EditXLabel.Text = IsOffsetMode ? "Offset X:" : "Game X:";
-        EditYLabel.Text = IsOffsetMode ? "Offset Y:" : "Game Y:";
-
         var tile = _selectionController.CurrentTile;
         var image = _selectionController.CurrentImage;
         if (tile == null || image == null) return;
@@ -716,6 +722,10 @@ public partial class MainWindow : Window
         _isUpdatingBoxes = true;
         
         CenteredToggle.IsChecked = tile.Centered;
+        CoordinateModeToggle.IsChecked = tile.IsOffsetMode;
+        
+        EditXLabel.Text = tile.IsOffsetMode ? "Offset X:" : "Game X:";
+        EditYLabel.Text = tile.IsOffsetMode ? "Offset Y:" : "Game Y:";
 
         double anchorX = tile.X;
         double anchorY = tile.Y;
@@ -726,7 +736,7 @@ public partial class MainWindow : Window
             anchorY += image.Height / 2.0;
         }
 
-        if (IsOffsetMode)
+        if (tile.IsOffsetMode)
         {
             var offsets = CoordinateMapper.CoordinatesToOffsets(anchorX, anchorY);
             EditXBox.Value = (decimal)offsets.X;

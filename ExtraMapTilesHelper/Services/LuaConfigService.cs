@@ -8,7 +8,7 @@ namespace ExtraMapTilesHelper.Services;
 
 public class LuaConfigService
 {
-    public string GenerateLuaConfig(IEnumerable<PlacedTileItem> tiles, bool isOffsetMode)
+    public string GenerateLuaConfig(IEnumerable<PlacedTileItem> tiles)
     {
         var sb = new StringBuilder();
         sb.AppendLine("config = config or {}");
@@ -18,18 +18,16 @@ public class LuaConfigService
         foreach (var tile in tiles)
         {
             sb.AppendLine($"    ['{index}'] = {{");
-            
-            // Following the GTA logic where YTDs hold dictionaries & TXDs hold textures
             sb.AppendLine($"        txd = \"{tile.YtdName}\",");
             sb.AppendLine($"        txn = \"{tile.TxdName}\",");
-            
-            double width = 256.0 * tile.ScaleX;
-            double height = 256.0 * tile.ScaleY;
-            double anchorX = tile.X + (tile.Centered ? width / 2.0 : 0);
-            double anchorY = tile.Y + (tile.Centered ? height / 2.0 : 0);
 
-            // Write either offset or exact game coordinates depending on active toggle
-            if (isOffsetMode)
+            // Match exactly what the numeric editor shows (anchor-based when centered)
+            double width = CoordinateMapper.CanvasTileSize * tile.ScaleX;
+            double height = CoordinateMapper.CanvasTileSize * tile.ScaleY;
+            double anchorX = tile.X + (tile.Centered ? width / 2.0 : 0.0);
+            double anchorY = tile.Y + (tile.Centered ? height / 2.0 : 0.0);
+
+            if (tile.IsOffsetMode)
             {
                 var offsets = CoordinateMapper.CoordinatesToOffsets(anchorX, anchorY);
                 sb.AppendLine($"        x_offset = {offsets.X.ToString("0.0###", CultureInfo.InvariantCulture)},");
@@ -48,7 +46,6 @@ public class LuaConfigService
             sb.AppendLine($"        alpha = {(int)tile.Alpha},");
             sb.AppendLine($"        centered = {(tile.Centered ? "true" : "false")}");
             sb.AppendLine("    },");
-            
             index++;
         }
 

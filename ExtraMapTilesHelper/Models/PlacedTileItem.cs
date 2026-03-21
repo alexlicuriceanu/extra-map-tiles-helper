@@ -17,6 +17,7 @@ public class PlacedTileItem : INotifyPropertyChanged
     private double _scaleY = 1.0;
     private int _rotationDegrees;
     private bool _centered;
+    private bool _isOffsetMode = true;
 
     public required TextureItem Texture
     {
@@ -98,6 +99,12 @@ public class PlacedTileItem : INotifyPropertyChanged
     {
         get => _centered;
         set { if (_centered != value) { _centered = value; OnPropertyChanged(); } }
+    }
+
+    public bool IsOffsetMode
+    {
+        get => _isOffsetMode;
+        set { if (_isOffsetMode != value) { _isOffsetMode = value; OnPropertyChanged(); } }
     }
 
     public string YtdName => Texture?.DictionaryName ?? string.Empty;
