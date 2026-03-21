@@ -95,6 +95,24 @@ public partial class MainWindow : Window
 
     private void OnResetViewClicked(object? sender, RoutedEventArgs e) => _camera.ResetView();
     private void OnCoordinateModeToggled(object? sender, RoutedEventArgs e) => UpdateCoordinateEditorUi();
+    private void OnCenteredToggled(object? sender, RoutedEventArgs e)
+    {
+        var tile = _selectionController.CurrentTile;
+        var image = _selectionController.CurrentImage;
+        if (tile == null || image == null) return;
+
+        double halfW = image.Width / 2.0;
+        double halfH = image.Height / 2.0;
+
+        // Keep the currently displayed coords/offsets as the same numeric value,
+        // but reinterpret them with the new anchor mode by shifting the tile.
+        bool centered = IsCenteredMode;
+        double newX = centered ? tile.X - halfW : tile.X + halfW;
+        double newY = centered ? tile.Y - halfH : tile.Y + halfH;
+
+        _tilePositionHelper.UpdateFromCoordinates(tile, newX, newY);
+        OnTilePositionUpdated(tile);
+    }
 
     private void OnRemoveTileClicked(object? sender, RoutedEventArgs e)
     {
@@ -425,10 +443,47 @@ public partial class MainWindow : Window
     {
         if (_isUpdatingBoxes || !e.NewValue.HasValue) return;
 
-        _selectionController.UpdateTilePosition(
-            (double)e.NewValue.Value,
-            isX: sender == EditXBox,
-            isOffsetMode: IsOffsetMode);
+        if (!IsCenteredMode)
+        {
+            _selectionController.UpdateTilePosition(
+                (double)e.NewValue.Value,
+                isX: sender == EditXBox,
+                isOffsetMode: IsOffsetMode);
+            return;
+        }
+
+        var tile = _selectionController.CurrentTile;
+        var image = _selectionController.CurrentImage;
+        if (tile == null || image == null) return;
+
+        double halfW = image.Width / 2.0;
+        double halfH = image.Height / 2.0;
+
+        double anchorX = tile.X + halfW;
+        double anchorY = tile.Y + halfH;
+
+        if (IsOffsetMode)
+        {
+            var currentAnchorOffsets = CoordinateMapper.CoordinatesToOffsets(anchorX, anchorY);
+
+            double newOx = sender == EditXBox ? (double)e.NewValue.Value : currentAnchorOffsets.X;
+            double newOy = sender == EditYBox ? (double)e.NewValue.Value : currentAnchorOffsets.Y;
+
+            var newAnchor = CoordinateMapper.OffsetsToCoordinates(newOx, newOy);
+            _tilePositionHelper.UpdateFromCoordinates(tile, newAnchor.X - halfW, newAnchor.Y - halfH);
+        }
+        else
+        {
+            var currentAnchorGame = CoordinateMapper.CoordinatesToGame(anchorX, anchorY);
+
+            double newGx = sender == EditXBox ? (double)e.NewValue.Value : currentAnchorGame.X;
+            double newGy = sender == EditYBox ? (double)e.NewValue.Value : currentAnchorGame.Y;
+
+            var newAnchor = CoordinateMapper.GameToCoordinates(newGx, newGy);
+            _tilePositionHelper.UpdateFromCoordinates(tile, newAnchor.X - halfW, newAnchor.Y - halfH);
+        }
+
+        OnTilePositionUpdated(tile);
     }
 
     private void OnEditAlphaBoxValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
@@ -455,16 +510,39 @@ public partial class MainWindow : Window
 
         var value = Math.Clamp((double)e.NewValue.Value, 0.1, 10.0);
 
+        double oldWidth = image.Width;
+        double oldHeight = image.Height;
+
+        // Anchor point before scaling
+        double anchorX = IsCenteredMode ? tile.X + (oldWidth / 2.0) : tile.X;
+        double anchorY = IsCenteredMode ? tile.Y + (oldHeight / 2.0) : tile.Y;
+
         if (sender == EditScaleXBox)
             tile.ScaleX = value;
         else
             tile.ScaleY = value;
 
-        image.Width = CoordinateMapper.CanvasTileSize * tile.ScaleX;
-        image.Height = CoordinateMapper.CanvasTileSize * tile.ScaleY;
+        double newWidth = CoordinateMapper.CanvasTileSize * tile.ScaleX;
+        double newHeight = CoordinateMapper.CanvasTileSize * tile.ScaleY;
+
+        image.Width = newWidth;
+        image.Height = newHeight;
+
+        // Recompute top-left from anchor mode
+        double newX = IsCenteredMode ? anchorX - (newWidth / 2.0) : anchorX;
+        double newY = IsCenteredMode ? anchorY - (newHeight / 2.0) : anchorY;
+
+        _tilePositionHelper.UpdateFromCoordinates(tile, newX, newY);
+
+        Canvas.SetLeft(image, tile.X);
+        Canvas.SetTop(image, tile.Y);
 
         SelectionHighlight.Width = image.Width;
         SelectionHighlight.Height = image.Height;
+        Canvas.SetLeft(SelectionHighlight, tile.X);
+        Canvas.SetTop(SelectionHighlight, tile.Y);
+
+        UpdateCoordinateEditorUi();
     }
 
     private void OnDictionaryPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -480,6 +558,7 @@ public partial class MainWindow : Window
     }
 
     private bool IsOffsetMode => CoordinateModeToggle.IsChecked == true;
+    private bool IsCenteredMode => CenteredToggle.IsChecked == true;
 
     private void UpdateCoordinateEditorUi()
     {
@@ -487,21 +566,33 @@ public partial class MainWindow : Window
         EditYLabel.Text = IsOffsetMode ? "Offset Y:" : "Game Y:";
 
         var tile = _selectionController.CurrentTile;
-        if (tile == null) return;
+        var image = _selectionController.CurrentImage;
+        if (tile == null || image == null) return;
 
         _isUpdatingBoxes = true;
 
+        double anchorX = tile.X;
+        double anchorY = tile.Y;
+
+        if (IsCenteredMode)
+        {
+            anchorX += image.Width / 2.0;
+            anchorY += image.Height / 2.0;
+        }
+
         if (IsOffsetMode)
         {
-            EditXBox.Value = (decimal)tile.OffsetX;
-            EditYBox.Value = (decimal)tile.OffsetY;
+            var offsets = CoordinateMapper.CoordinatesToOffsets(anchorX, anchorY);
+            EditXBox.Value = (decimal)offsets.X;
+            EditYBox.Value = (decimal)offsets.Y;
             EditXBox.Increment = 1.0m;
             EditYBox.Increment = 1.0m;
         }
         else
         {
-            EditXBox.Value = (decimal)tile.GameX;
-            EditYBox.Value = (decimal)tile.GameY;
+            var game = CoordinateMapper.CoordinatesToGame(anchorX, anchorY);
+            EditXBox.Value = (decimal)game.X;
+            EditYBox.Value = (decimal)game.Y;
             EditXBox.Increment = 4500.0m;
             EditYBox.Increment = 4500.0m;
         }

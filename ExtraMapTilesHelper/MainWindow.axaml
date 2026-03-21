@@ -188,12 +188,21 @@
                                                 VerticalAlignment="Center"
                                                 Click="OnRemoveTileClicked"/>
                                         
-                                        <ToggleSwitch x:Name="CoordinateModeToggle"
-                                                      OffContent="Coordinate Mode"
-                                                      OnContent="Offset Mode"
-                                                      IsChecked="True"
-                                                      Checked="OnCoordinateModeToggled"
-                                                      Unchecked="OnCoordinateModeToggled"/>
+                                        <StackPanel Spacing="5">
+                                            <ToggleSwitch x:Name="CenteredToggle"
+                                                          OffContent="Top-left Anchor"
+                                                          OnContent="Centered"
+                                                          IsChecked="False"
+                                                          Checked="OnCenteredToggled"
+                                                          Unchecked="OnCenteredToggled"/>
+
+                                            <ToggleSwitch x:Name="CoordinateModeToggle"
+                                                          OffContent="Coordinate Mode"
+                                                          OnContent="Offset Mode"
+                                                          IsChecked="True"
+                                                          Checked="OnCoordinateModeToggled"
+                                                          Unchecked="OnCoordinateModeToggled"/>
+                                        </StackPanel>
                                     </DockPanel>
 
                                     <Grid RowDefinitions="Auto, Auto, Auto, Auto, Auto" ColumnDefinitions="Auto, *" DockPanel.Dock="Top">
