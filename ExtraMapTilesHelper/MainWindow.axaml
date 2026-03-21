@@ -24,6 +24,7 @@
 			<Menu Background="Transparent" Foreground="White">
 				<MenuItem Header="_File">
 					<MenuItem x:Name="ImportMenuItem" Header="_Import YTDs" Click="OnImportClicked"/>
+					<MenuItem Header="_Export Config" Click="OnExportConfigClicked"/>
 					<Separator/>
 					<MenuItem Header="E_xit" Click="OnExitClicked"/>
 				</MenuItem>

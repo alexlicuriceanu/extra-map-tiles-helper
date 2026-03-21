@@ -1,0 +1,113 @@
+using ExtraMapTilesHelper.Models;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
+
+namespace ExtraMapTilesHelper.Services;
+
+public class LuaConfigService
+{
+    public string GenerateLuaConfig(IEnumerable<PlacedTileItem> tiles, bool isOffsetMode)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("config = config or {}");
+        sb.AppendLine("config.tiles = {");
+
+        int index = 1;
+        foreach (var tile in tiles)
+        {
+            sb.AppendLine($"    ['{index}'] = {{");
+            
+            // Following the GTA logic where YTDs hold dictionaries & TXDs hold textures
+            sb.AppendLine($"        txd = \"{tile.YtdName}\",");
+            sb.AppendLine($"        txn = \"{tile.TxdName}\",");
+            
+            double width = 256.0 * tile.ScaleX;
+            double height = 256.0 * tile.ScaleY;
+            double anchorX = tile.X + (tile.Centered ? width / 2.0 : 0);
+            double anchorY = tile.Y + (tile.Centered ? height / 2.0 : 0);
+
+            // Write either offset or exact game coordinates depending on active toggle
+            if (isOffsetMode)
+            {
+                var offsets = CoordinateMapper.CoordinatesToOffsets(anchorX, anchorY);
+                sb.AppendLine($"        x_offset = {offsets.X.ToString("0.0###", CultureInfo.InvariantCulture)},");
+                sb.AppendLine($"        y_offset = {offsets.Y.ToString("0.0###", CultureInfo.InvariantCulture)},");
+            }
+            else
+            {
+                var game = CoordinateMapper.CoordinatesToGame(anchorX, anchorY);
+                sb.AppendLine($"        x = {game.X.ToString("0.0###", CultureInfo.InvariantCulture)},");
+                sb.AppendLine($"        y = {game.Y.ToString("0.0###", CultureInfo.InvariantCulture)},");
+            }
+
+            sb.AppendLine($"        x_scale = {tile.ScaleX.ToString("0.0###", CultureInfo.InvariantCulture)},");
+            sb.AppendLine($"        y_scale = {tile.ScaleY.ToString("0.0###", CultureInfo.InvariantCulture)},");
+            sb.AppendLine($"        rotation = {tile.RotationDegrees.ToString("0.0###", CultureInfo.InvariantCulture)},");
+            sb.AppendLine($"        alpha = {(int)tile.Alpha},");
+            sb.AppendLine($"        centered = {(tile.Centered ? "true" : "false")}");
+            sb.AppendLine("    },");
+            
+            index++;
+        }
+
+        sb.AppendLine("}");
+        return sb.ToString();
+    }
+
+    public IEnumerable<ParsedTileData> ParseLuaConfig(string luaContent)
+    {
+        var tiles = new List<ParsedTileData>();
+
+        // Dynamically matches the inner context of each block inside the configuration: ["index"] = { ... } OR [1] = { ... }
+        var blockRegex = new Regex(@"\[(?:""[^""]+""|\d+)\]\s*=\s*\{([^}]+)\}", RegexOptions.Singleline);
+        // Extracts the key-value attributes inside the block (e.g., rotation = 0.0, or txd = "hello_world")
+        var fieldRegex = new Regex(@"([a-zA-Z_]+)\s*=\s*(?:""([^""]+)""|([^,\s}]+))");
+
+        foreach (Match blockMatch in blockRegex.Matches(luaContent))
+        {
+            var blockContent = blockMatch.Groups[1].Value;
+            var tileData = new ParsedTileData();
+
+            foreach (Match fieldMatch in fieldRegex.Matches(blockContent))
+            {
+                string key = fieldMatch.Groups[1].Value.Trim().ToLowerInvariant();
+                string val = fieldMatch.Groups[2].Success ? fieldMatch.Groups[2].Value : fieldMatch.Groups[3].Value.Trim();
+
+                switch (key)
+                {
+                    case "txd": tileData.DictionaryName = val; break;
+                    case "txn": tileData.TextureName = val; break;
+                    case "x_offset": if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double xo)) tileData.OffsetX = xo; break;
+                    case "y_offset": if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double yo)) tileData.OffsetY = yo; break;
+                    case "x_scale": if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double xs)) tileData.ScaleX = xs; break;
+                    case "y_scale": if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double ys)) tileData.ScaleY = ys; break;
+                    case "rotation": if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double rot)) tileData.Rotation = rot; break;
+                    case "alpha": if (int.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out int alpha)) tileData.Alpha = alpha; break;
+                    case "centered": tileData.Centered = val.Equals("true", System.StringComparison.OrdinalIgnoreCase); break;
+                }
+            }
+
+            tiles.Add(tileData);
+        }
+
+        return tiles;
+    }
+}
+
+/// <summary>
+/// A completely UI-decoupled intermediate structure generated by the Lua parsing logic that your controller/I-O orchestrator can apply mapping against.
+/// </summary>
+public class ParsedTileData
+{
+    public string DictionaryName { get; set; } = string.Empty;
+    public string TextureName { get; set; } = string.Empty;
+    public double OffsetX { get; set; }
+    public double OffsetY { get; set; }
+    public double ScaleX { get; set; } = 1.0;
+    public double ScaleY { get; set; } = 1.0;
+    public double Rotation { get; set; }
+    public int Alpha { get; set; } = 100;
+    public bool Centered { get; set; }
+}

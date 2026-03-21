@@ -97,6 +97,8 @@ public partial class MainWindow : Window
     private void OnCoordinateModeToggled(object? sender, RoutedEventArgs e) => UpdateCoordinateEditorUi();
     private void OnCenteredToggled(object? sender, RoutedEventArgs e)
     {
+        if (_isUpdatingBoxes) return;
+
         var tile = _selectionController.CurrentTile;
         var image = _selectionController.CurrentImage;
         if (tile == null || image == null) return;
@@ -105,6 +107,8 @@ public partial class MainWindow : Window
         double halfH = image.Height / 2.0;
 
         bool centered = IsCenteredMode;
+        tile.Centered = centered;
+
         double newX = centered ? tile.X - halfW : tile.X + halfW;
         double newY = centered ? tile.Y - halfH : tile.Y + halfH;
 
@@ -149,8 +153,8 @@ public partial class MainWindow : Window
 
         // Reset position to offsets (0, 0)
         var resetAnchor = CoordinateMapper.OffsetsToCoordinates(0, 0);
-        double newX = IsCenteredMode ? resetAnchor.X - (newWidth / 2.0) : resetAnchor.X;
-        double newY = IsCenteredMode ? resetAnchor.Y - (newHeight / 2.0) : resetAnchor.Y;
+        double newX = tile.Centered ? resetAnchor.X - (newWidth / 2.0) : resetAnchor.X;
+        double newY = tile.Centered ? resetAnchor.Y - (newHeight / 2.0) : resetAnchor.Y;
 
         _tilePositionHelper.UpdateFromCoordinates(tile, newX, newY);
 
@@ -172,6 +176,51 @@ public partial class MainWindow : Window
             Dictionaries,
             SetStatus,
             enabled => ImportMenuItem.IsEnabled = enabled);
+    }
+
+    private async void OnExportConfigClicked(object? sender, RoutedEventArgs e)
+    {
+        if (PlacedTiles.Count == 0)
+        {
+            SetStatus("No tiles to export");
+            return;
+        }
+
+        var saveFileOptions = new Avalonia.Platform.Storage.FilePickerSaveOptions
+        {
+            Title = "Export Lua Config",
+            DefaultExtension = "lua",
+            FileTypeChoices = new[]
+            {
+                new Avalonia.Platform.Storage.FilePickerFileType("Lua files")
+                {
+                    Patterns = new[] { "*.lua" }
+                }
+            }
+        };
+
+        var selectedFile = await StorageProvider.SaveFilePickerAsync(saveFileOptions);
+
+        if (selectedFile != null)
+        {
+            try
+            {
+                var configService = new LuaConfigService();
+                string luaContent = configService.GenerateLuaConfig(PlacedTiles, IsOffsetMode);
+
+                using (var stream = await selectedFile.OpenWriteAsync())
+                using (var writer = new System.IO.StreamWriter(stream))
+                {
+                    await writer.WriteAsync(luaContent);
+                }
+
+                SetStatus($"Successfully exported {PlacedTiles.Count} tiles to '{selectedFile.Name}'.");
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Failed to export config: {ex.Message}");
+            }
+        }
     }
 
     private void OnExitClicked(object? sender, RoutedEventArgs e)
@@ -261,7 +310,7 @@ public partial class MainWindow : Window
 
         if (e.Data.Contains("MovePlacedTile") && e.Data.Get("MovePlacedTile") is PlacedTileItem moveTile)
         {
-            var origin = IsCenteredMode
+            var origin = moveTile.Centered
                 ? new RelativePoint(0.5, 0.5, RelativeUnit.Relative)
                 : new RelativePoint(0.0, 0.0, RelativeUnit.Relative);
 
@@ -369,7 +418,7 @@ public partial class MainWindow : Window
                 canvasBitmap = Avalonia.Media.Imaging.Bitmap.DecodeToWidth(stream, 1024);
             }
 
-            var placedTile = new PlacedTileItem { Texture = item };
+            var placedTile = new PlacedTileItem { Texture = item, Centered = IsCenteredMode };
             _tilePositionHelper.UpdateFromCoordinates(placedTile, finalPosition.X, finalPosition.Y);
 
             var mapImage = new Image
@@ -516,7 +565,11 @@ public partial class MainWindow : Window
     {
         if (_isUpdatingBoxes || !e.NewValue.HasValue) return;
 
-        if (!IsCenteredMode)
+        var tile = _selectionController.CurrentTile;
+        var image = _selectionController.CurrentImage;
+        if (tile == null || image == null) return;
+
+        if (!tile.Centered)
         {
             _selectionController.UpdateTilePosition(
                 (double)e.NewValue.Value,
@@ -524,10 +577,6 @@ public partial class MainWindow : Window
                 isOffsetMode: IsOffsetMode);
             return;
         }
-
-        var tile = _selectionController.CurrentTile;
-        var image = _selectionController.CurrentImage;
-        if (tile == null || image == null) return;
 
         double halfW = image.Width / 2.0;
         double halfH = image.Height / 2.0;
@@ -587,8 +636,8 @@ public partial class MainWindow : Window
         double oldHeight = image.Height;
 
         // Anchor point before scaling
-        double anchorX = IsCenteredMode ? tile.X + (oldWidth / 2.0) : tile.X;
-        double anchorY = IsCenteredMode ? tile.Y + (oldHeight / 2.0) : tile.Y;
+        double anchorX = tile.Centered ? tile.X + (oldWidth / 2.0) : tile.X;
+        double anchorY = tile.Centered ? tile.Y + (oldHeight / 2.0) : tile.Y;
 
         if (sender == EditScaleXBox)
             tile.ScaleX = value;
@@ -602,8 +651,8 @@ public partial class MainWindow : Window
         image.Height = newHeight;
 
         // Recompute top-left from anchor mode
-        double newX = IsCenteredMode ? anchorX - (newWidth / 2.0) : anchorX;
-        double newY = IsCenteredMode ? anchorY - (newHeight / 2.0) : anchorY;
+        double newX = tile.Centered ? anchorX - (newWidth / 2.0) : anchorX;
+        double newY = tile.Centered ? anchorY - (newHeight / 2.0) : anchorY;
 
         _tilePositionHelper.UpdateFromCoordinates(tile, newX, newY);
 
@@ -638,7 +687,7 @@ public partial class MainWindow : Window
 
     private void ApplyTileRotation(Image image, PlacedTileItem tile)
     {
-        var origin = IsCenteredMode
+        var origin = tile.Centered
             ? new RelativePoint(0.5, 0.5, RelativeUnit.Relative)
             : new RelativePoint(0.0, 0.0, RelativeUnit.Relative);
 
@@ -665,11 +714,13 @@ public partial class MainWindow : Window
         if (tile == null || image == null) return;
 
         _isUpdatingBoxes = true;
+        
+        CenteredToggle.IsChecked = tile.Centered;
 
         double anchorX = tile.X;
         double anchorY = tile.Y;
 
-        if (IsCenteredMode)
+        if (tile.Centered)
         {
             anchorX += image.Width / 2.0;
             anchorY += image.Height / 2.0;
