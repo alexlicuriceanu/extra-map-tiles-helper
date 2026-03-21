@@ -181,12 +181,20 @@
                                     </StackPanel>
 
                                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                                        <Button DockPanel.Dock="Right"
-                                                Content="Remove"
-                                                Background="#d13438"
-                                                Foreground="White"
-                                                VerticalAlignment="Center"
-                                                Click="OnRemoveTileClicked"/>
+                                        <StackPanel DockPanel.Dock="Right" Spacing="5" VerticalAlignment="Center">
+                                            <Button Content="Remove"
+                                                    Background="#d13438"
+                                                    Foreground="White"
+                                                    HorizontalAlignment="Stretch"
+                                                    HorizontalContentAlignment="Center"
+                                                    Click="OnRemoveTileClicked"/>
+                                            <Button Content="Reset"
+                                                    Background="#555555"
+                                                    Foreground="White"
+                                                    HorizontalAlignment="Stretch"
+                                                    HorizontalContentAlignment="Center"
+                                                    Click="OnResetTileClicked"/>
+                                        </StackPanel>
                                         
                                         <StackPanel Spacing="5">
                                             <ToggleSwitch x:Name="CenteredToggle"

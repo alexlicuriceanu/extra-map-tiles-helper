@@ -123,6 +123,48 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnResetTileClicked(object? sender, RoutedEventArgs e)
+    {
+        var tile = _selectionController.CurrentTile;
+        var image = _selectionController.CurrentImage;
+        if (tile == null || image == null) return;
+
+        // Reset Alpha
+        tile.Alpha = 100.0;
+        image.Opacity = 1.0;
+
+        // Reset Rotation
+        tile.RotationDegrees = 0;
+        ApplyTileRotation(image, tile);
+
+        // Reset Scale
+        tile.ScaleX = 1.0;
+        tile.ScaleY = 1.0;
+
+        double newWidth = CoordinateMapper.CanvasTileSize;
+        double newHeight = CoordinateMapper.CanvasTileSize;
+
+        image.Width = newWidth;
+        image.Height = newHeight;
+
+        // Reset position to offsets (0, 0)
+        var resetAnchor = CoordinateMapper.OffsetsToCoordinates(0, 0);
+        double newX = IsCenteredMode ? resetAnchor.X - (newWidth / 2.0) : resetAnchor.X;
+        double newY = IsCenteredMode ? resetAnchor.Y - (newHeight / 2.0) : resetAnchor.Y;
+
+        _tilePositionHelper.UpdateFromCoordinates(tile, newX, newY);
+
+        Canvas.SetLeft(image, tile.X);
+        Canvas.SetTop(image, tile.Y);
+
+        SelectionHighlight.Width = image.Width;
+        SelectionHighlight.Height = image.Height;
+        Canvas.SetLeft(SelectionHighlight, tile.X);
+        Canvas.SetTop(SelectionHighlight, tile.Y);
+
+        UpdateCoordinateEditorUi();
+    }
+
     private async void OnImportClicked(object? sender, RoutedEventArgs e)
     {
         await _projectController.ImportYtdsAsync(
