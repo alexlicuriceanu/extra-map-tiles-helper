@@ -188,6 +188,17 @@ public partial class MainWindow : Window
             DragHighlightImage.Source = sourceImg.Source;
         else
             DragHighlightImage.Source = null;
+
+        if (e.Data.Contains("SourceImage") && e.Data.Get("SourceImage") is Image draggedSourceImage)
+        {
+            DragHighlight.Width = draggedSourceImage.Width;
+            DragHighlight.Height = draggedSourceImage.Height;
+        }
+        else
+        {
+            DragHighlight.Width = CoordinateMapper.CanvasTileSize;
+            DragHighlight.Height = CoordinateMapper.CanvasTileSize;
+        }
     }
 
     private void OnCanvasDragOver(object? sender, DragEventArgs e)
@@ -208,7 +219,16 @@ public partial class MainWindow : Window
             return;
         }
 
-        var snappedPosition = _snappingEngine.GetSnappedPosition(position, MapCanvas);
+        double dragW = CoordinateMapper.CanvasTileSize;
+        double dragH = CoordinateMapper.CanvasTileSize;
+
+        if (e.Data.Contains("SourceImage") && e.Data.Get("SourceImage") is Image sourceImage)
+        {
+            dragW = sourceImage.Width;
+            dragH = sourceImage.Height;
+        }
+
+        var snappedPosition = _snappingEngine.GetSnappedPosition(position, MapCanvas, dragW, dragH);
 
         if (_snappingEngine.IsSameSnappedPosition(snappedPosition))
         {
@@ -242,7 +262,7 @@ public partial class MainWindow : Window
         if (e.Data.Contains("MovePlacedTile") && e.Data.Get("MovePlacedTile") is PlacedTileItem moveTile && e.Data.Get("SourceImage") is Image sourceImage)
         {
             var dropPosition = e.GetPosition(MapCanvas);
-            var finalPosition = _snappingEngine.GetSnappedPosition(dropPosition, MapCanvas);
+            var finalPosition = _snappingEngine.GetSnappedPosition(dropPosition, MapCanvas, sourceImage.Width, sourceImage.Height);
 
             _tilePositionHelper.UpdateFromCoordinates(moveTile, finalPosition.X, finalPosition.Y);
             Canvas.SetLeft(sourceImage, moveTile.X);
@@ -254,7 +274,11 @@ public partial class MainWindow : Window
         else if (e.Data.Contains("DraggedTexture") && e.Data.Get("DraggedTexture") is TextureItem item)
         {
             var dropPosition = e.GetPosition(MapCanvas);
-            var finalPosition = _snappingEngine.GetSnappedPosition(dropPosition, MapCanvas);
+            var finalPosition = _snappingEngine.GetSnappedPosition(
+                dropPosition,
+                MapCanvas,
+                CoordinateMapper.CanvasTileSize,
+                CoordinateMapper.CanvasTileSize);
 
             Avalonia.Media.Imaging.Bitmap canvasBitmap;
             using (var stream = System.IO.File.OpenRead(item.HighResFilePath))
@@ -268,8 +292,8 @@ public partial class MainWindow : Window
             var mapImage = new Image
             {
                 Source = canvasBitmap,
-                Width = CoordinateMapper.CanvasTileSize,
-                Height = CoordinateMapper.CanvasTileSize,
+                Width = CoordinateMapper.CanvasTileSize * placedTile.ScaleX,
+                Height = CoordinateMapper.CanvasTileSize * placedTile.ScaleY,
                 Stretch = Stretch.Fill,
                 Tag = placedTile,
                 ZIndex = 6,
@@ -421,6 +445,28 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnEditScaleBoxValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (_isUpdatingBoxes || !e.NewValue.HasValue) return;
+
+        var tile = _selectionController.CurrentTile;
+        var image = _selectionController.CurrentImage;
+        if (tile == null || image == null) return;
+
+        var value = Math.Clamp((double)e.NewValue.Value, 0.1, 10.0);
+
+        if (sender == EditScaleXBox)
+            tile.ScaleX = value;
+        else
+            tile.ScaleY = value;
+
+        image.Width = CoordinateMapper.CanvasTileSize * tile.ScaleX;
+        image.Height = CoordinateMapper.CanvasTileSize * tile.ScaleY;
+
+        SelectionHighlight.Width = image.Width;
+        SelectionHighlight.Height = image.Height;
+    }
+
     private void OnDictionaryPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         var point = e.GetCurrentPoint(sender as Control);
@@ -461,6 +507,8 @@ public partial class MainWindow : Window
         }
 
         EditAlphaBox.Value = (decimal)tile.Alpha;
+        EditScaleXBox.Value = (decimal)tile.ScaleX;
+        EditScaleYBox.Value = (decimal)tile.ScaleY;
 
         _isUpdatingBoxes = false;
     }

@@ -166,42 +166,54 @@
                                        Foreground="White"
                                        Padding="10"/>
 
-                            <DockPanel x:Name="TileEditorPanel" IsVisible="False" Margin="10,10,10,10">
-                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="0,0,0,15">
-                                    <Image x:Name="SelectedTilePreview" Width="64" Height="64" Stretch="Uniform"/>
-                                    <StackPanel VerticalAlignment="Center">
-                                        <TextBlock x:Name="SelectedTileName" FontWeight="Normal" Foreground="White"/>
-                                        <TextBlock x:Name="SelectedTileYtd" FontSize="11" Opacity="0.8"/>
+                            <ScrollViewer x:Name="TileEditorPanel"
+                                          IsVisible="False"
+                                          Margin="10,10,10,10"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="0,0,0,15">
+                                        <Image x:Name="SelectedTilePreview" Width="64" Height="64" Stretch="Uniform"/>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock x:Name="SelectedTileName" FontWeight="Normal" Foreground="White"/>
+                                            <TextBlock x:Name="SelectedTileYtd" FontSize="11" Opacity="0.8"/>
+                                        </StackPanel>
                                     </StackPanel>
-                                </StackPanel>
 
-                                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                                    <Button DockPanel.Dock="Right"
-                                            Content="Remove"
-                                            Background="#d13438"
-                                            Foreground="White"
-                                            VerticalAlignment="Center"
-                                            Click="OnRemoveTileClicked"/>
-                                    
-                                    <ToggleSwitch x:Name="CoordinateModeToggle"
-                                                  OffContent="Coordinate Mode"
-                                                  OnContent="Offset Mode"
-                                                  IsChecked="True"
-                                                  Checked="OnCoordinateModeToggled"
-                                                  Unchecked="OnCoordinateModeToggled"/>
+                                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                                        <Button DockPanel.Dock="Right"
+                                                Content="Remove"
+                                                Background="#d13438"
+                                                Foreground="White"
+                                                VerticalAlignment="Center"
+                                                Click="OnRemoveTileClicked"/>
+                                        
+                                        <ToggleSwitch x:Name="CoordinateModeToggle"
+                                                      OffContent="Coordinate Mode"
+                                                      OnContent="Offset Mode"
+                                                      IsChecked="True"
+                                                      Checked="OnCoordinateModeToggled"
+                                                      Unchecked="OnCoordinateModeToggled"/>
+                                    </DockPanel>
+
+                                    <Grid RowDefinitions="Auto, Auto, Auto, Auto, Auto" ColumnDefinitions="Auto, *" DockPanel.Dock="Top">
+                                        <TextBlock x:Name="EditXLabel" Grid.Row="0" Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                                        <NumericUpDown x:Name="EditXBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,10" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
+
+                                        <TextBlock x:Name="EditYLabel" Grid.Row="1" Grid.Column="0" Text="Y:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                                        <NumericUpDown x:Name="EditYBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,10" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
+
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Alpha:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                                        <NumericUpDown x:Name="EditAlphaBox" Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Increment="1.0" Margin="0,0,0,10" ValueChanged="OnEditAlphaBoxValueChanged"/>
+
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Scale X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                                        <NumericUpDown x:Name="EditScaleXBox" Grid.Row="3" Grid.Column="1" Minimum="0.1" Maximum="10" Increment="0.1" Margin="0,0,0,10" ValueChanged="OnEditScaleBoxValueChanged"/>
+
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Scale Y:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <NumericUpDown x:Name="EditScaleYBox" Grid.Row="4" Grid.Column="1" Minimum="0.1" Maximum="10" Increment="0.1" ValueChanged="OnEditScaleBoxValueChanged"/>
+                                    </Grid>
                                 </DockPanel>
-
-                                <Grid RowDefinitions="Auto, Auto, Auto" ColumnDefinitions="Auto, *" DockPanel.Dock="Top">
-                                    <TextBlock x:Name="EditXLabel" Grid.Row="0" Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
-                                    <NumericUpDown x:Name="EditXBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,10" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
-
-                                    <TextBlock x:Name="EditYLabel" Grid.Row="1" Grid.Column="0" Text="Y:" VerticalAlignment="Center" Margin="0,0,10,10"/>
-                                    <NumericUpDown x:Name="EditYBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,10" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
-                                    
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Alpha:" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <NumericUpDown x:Name="EditAlphaBox" Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Increment="1.0" ValueChanged="OnEditAlphaBoxValueChanged"/>
-                                </Grid>
-                            </DockPanel>
+                            </ScrollViewer>
                         </DockPanel>
                     </Border>
 

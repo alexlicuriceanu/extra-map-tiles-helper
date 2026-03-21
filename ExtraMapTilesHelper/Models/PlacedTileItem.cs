@@ -10,6 +10,11 @@ public class PlacedTileItem : INotifyPropertyChanged
     private double _offsetX;
     private double _offsetY;
     private TextureItem _texture = null!;
+    private double _gameX;
+    private double _gameY;
+    private double _alpha = 100.0;
+    private double _scaleX = 1.0;
+    private double _scaleY = 1.0;
 
     public required TextureItem Texture
     {
@@ -49,9 +54,6 @@ public class PlacedTileItem : INotifyPropertyChanged
         set { if (_offsetY != value) { _offsetY = value; OnPropertyChanged(); } }
     }
 
-    private double _gameX;
-    private double _gameY;
-    private double _alpha = 100.0;
 
     // In-game coordinates
     public double GameX
@@ -70,6 +72,18 @@ public class PlacedTileItem : INotifyPropertyChanged
     {
         get => _alpha;
         set { if (_alpha != value) { _alpha = value; OnPropertyChanged(); } }
+    }
+
+    public double ScaleX
+    {
+        get => _scaleX;
+        set { if (_scaleX != value) { _scaleX = value; OnPropertyChanged(); } }
+    }
+
+    public double ScaleY
+    {
+        get => _scaleY;
+        set { if (_scaleY != value) { _scaleY = value; OnPropertyChanged(); } }
     }
 
     public string YtdName => Texture?.DictionaryName ?? string.Empty;

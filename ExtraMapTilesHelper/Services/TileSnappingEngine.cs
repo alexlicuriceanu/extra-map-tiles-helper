@@ -20,6 +20,8 @@ public sealed class TileSnappingEngine
         _lastSnappedPosition = new Point(-1000, -1000);
         _spatialHash.Clear();
 
+        double grid = CoordinateMapper.CanvasTileSize;
+
         foreach (var child in mapCanvas.Children)
         {
             if (child is not Control ctrl) continue;
@@ -28,17 +30,28 @@ public sealed class TileSnappingEngine
             double tileX = Canvas.GetLeft(ctrl);
             double tileY = Canvas.GetTop(ctrl);
 
-            double tileW = double.IsNaN(ctrl.Width) ? CoordinateMapper.CanvasTileSize : ctrl.Width;
-            double tileH = double.IsNaN(ctrl.Height) ? CoordinateMapper.CanvasTileSize : ctrl.Height;
+            double tileW = double.IsNaN(ctrl.Width) ? grid : ctrl.Width;
+            double tileH = double.IsNaN(ctrl.Height) ? grid : ctrl.Height;
 
-            int bucketX = (int)(tileX / CoordinateMapper.CanvasTileSize);
-            int bucketY = (int)(tileY / CoordinateMapper.CanvasTileSize);
-            var bucketKey = (bucketX, bucketY);
+            int startBucketX = (int)Math.Floor(tileX / grid);
+            int startBucketY = (int)Math.Floor(tileY / grid);
+            int endBucketX = (int)Math.Floor((tileX + tileW - 0.0001) / grid);
+            int endBucketY = (int)Math.Floor((tileY + tileH - 0.0001) / grid);
 
-            if (!_spatialHash.ContainsKey(bucketKey))
-                _spatialHash[bucketKey] = new List<Rect>();
+            for (int bx = startBucketX; bx <= endBucketX; bx++)
+            {
+                for (int by = startBucketY; by <= endBucketY; by++)
+                {
+                    var bucketKey = (bx, by);
+                    if (!_spatialHash.TryGetValue(bucketKey, out var list))
+                    {
+                        list = new List<Rect>();
+                        _spatialHash[bucketKey] = list;
+                    }
 
-            _spatialHash[bucketKey].Add(new Rect(tileX, tileY, tileW, tileH));
+                    list.Add(new Rect(tileX, tileY, tileW, tileH));
+                }
+            }
         }
     }
 
@@ -57,15 +70,15 @@ public sealed class TileSnappingEngine
 
     public void SetLastSnappedPosition(Point position) => _lastSnappedPosition = position;
 
-    public Point GetSnappedPosition(Point mousePosition, Canvas mapCanvas)
+    public Point GetSnappedPosition(Point mousePosition, Canvas mapCanvas, double dragWidth, double dragHeight)
     {
         double grid = CoordinateMapper.CanvasTileSize;
 
-        double targetX = mousePosition.X - (grid / 2);
-        double targetY = mousePosition.Y - (grid / 2);
+        double targetX = mousePosition.X - (dragWidth / 2);
+        double targetY = mousePosition.Y - (dragHeight / 2);
 
-        double maxX = (double.IsNaN(mapCanvas.Width) ? 100000 : mapCanvas.Width) - grid;
-        double maxY = (double.IsNaN(mapCanvas.Height) ? 100000 : mapCanvas.Height) - grid;
+        double maxX = (double.IsNaN(mapCanvas.Width) ? 100000 : mapCanvas.Width) - dragWidth;
+        double maxY = (double.IsNaN(mapCanvas.Height) ? 100000 : mapCanvas.Height) - dragHeight;
 
         targetX = Math.Clamp(targetX, 0, maxX);
         targetY = Math.Clamp(targetY, 0, maxY);
@@ -109,38 +122,58 @@ public sealed class TileSnappingEngine
                     double imgW = cachedRect.Width;
                     double imgH = cachedRect.Height;
 
-                    if (Math.Abs(imgX - targetX) > (Math.Max(grid, imgW) + snapThreshold) ||
-                        Math.Abs(imgY - targetY) > (Math.Max(grid, imgH) + snapThreshold))
+                    if (Math.Abs(imgX - targetX) > (Math.Max(dragWidth, imgW) + snapThreshold) ||
+                        Math.Abs(imgY - targetY) > (Math.Max(dragHeight, imgH) + snapThreshold))
                     {
                         continue;
                     }
 
-                    Point[] snapPoints =
-                    {
-                        new(imgX - grid, imgY),
-                        new(imgX + imgW, imgY),
-                        new(imgX, imgY - grid),
-                        new(imgX, imgY + imgH),
-                        new(imgX - grid, imgY - grid),
-                        new(imgX + imgW, imgY - grid),
-                        new(imgX - grid, imgY + imgH),
-                        new(imgX + imgW, imgY + imgH),
-                        new(imgX, imgY)
-                    };
+                    int xSegments = Math.Max(0, (int)Math.Floor(imgW / grid));
+                    int ySegments = Math.Max(0, (int)Math.Floor(imgH / grid));
 
-                    foreach (var sp in snapPoints)
-                    {
-                        if (sp.X < 0 || sp.Y < 0 || sp.X > maxX || sp.Y > maxY) continue;
+                    var xAnchors = new List<double>(xSegments + 3) { imgX };
+                    for (int i = 1; i <= xSegments; i++)
+                        xAnchors.Add(imgX + (i * grid));
+                    xAnchors.Add(imgX + imgW);
 
-                        double distSq = Math.Pow(targetX - sp.X, 2) + Math.Pow(targetY - sp.Y, 2);
-                        if (distSq <= bestDistSq + 25)
+                    var yAnchors = new List<double>(ySegments + 3) { imgY };
+                    for (int i = 1; i <= ySegments; i++)
+                        yAnchors.Add(imgY + (i * grid));
+                    yAnchors.Add(imgY + imgH);
+
+                    // NEW: allow snapping when dragged tile approaches from right/bottom OR left/top
+                    // targetX is dragged tile top-left X, so include both "anchor" and "anchor - dragWidth"
+                    var targetXAnchors = new List<double>(xAnchors.Count * 2);
+                    foreach (var ax in xAnchors)
+                    {
+                        targetXAnchors.Add(ax);
+                        targetXAnchors.Add(ax - dragWidth);
+                    }
+
+                    // targetY is dragged tile top-left Y, so include both "anchor" and "anchor - dragHeight"
+                    var targetYAnchors = new List<double>(yAnchors.Count * 2);
+                    foreach (var ay in yAnchors)
+                    {
+                        targetYAnchors.Add(ay);
+                        targetYAnchors.Add(ay - dragHeight);
+                    }
+
+                    foreach (var tx in targetXAnchors)
+                    {
+                        foreach (var ty in targetYAnchors)
                         {
-                            bestDistSq = distSq;
-                            bestSnap = sp;
-                            foundSnap = true;
+                            if (tx < 0 || ty < 0 || tx > maxX || ty > maxY) continue;
 
-                            if (bestDistSq < 1.0)
-                                return bestSnap;
+                            double distSq = Math.Pow(targetX - tx, 2) + Math.Pow(targetY - ty, 2);
+                            if (distSq <= bestDistSq + 25)
+                            {
+                                bestDistSq = distSq;
+                                bestSnap = new Point(tx, ty);
+                                foundSnap = true;
+
+                                if (bestDistSq < 1.0)
+                                    return bestSnap;
+                            }
                         }
                     }
                 }
@@ -149,4 +182,7 @@ public sealed class TileSnappingEngine
 
         return foundSnap ? bestSnap : new Point(targetX, targetY);
     }
+
+    public Point GetSnappedPosition(Point mousePosition, Canvas mapCanvas)
+        => GetSnappedPosition(mousePosition, mapCanvas, CoordinateMapper.CanvasTileSize, CoordinateMapper.CanvasTileSize);
 }
