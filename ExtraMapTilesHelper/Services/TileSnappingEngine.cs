@@ -14,6 +14,63 @@ public sealed class TileSnappingEngine
 
     public bool IsSnappingEnabled { get; set; } = true;
 
+    private static Point RotatePoint(double x, double y, double ox, double oy, double cos, double sin)
+    {
+        double dx = x - ox;
+        double dy = y - oy;
+        return new Point(ox + dx * cos - dy * sin, oy + dx * sin + dy * cos);
+    }
+
+    private static Rect GetBoundingBox(double x, double y, double w, double h, int rotation, RelativePoint origin)
+    {
+        rotation = (rotation % 360 + 360) % 360;
+
+        if (rotation % 90 != 0 || rotation == 0)
+            return new Rect(x, y, w, h);
+
+        double originX = origin.Unit == RelativeUnit.Relative ? origin.Point.X * w : origin.Point.X;
+        double originY = origin.Unit == RelativeUnit.Relative ? origin.Point.Y * h : origin.Point.Y;
+
+        double absOriginX = x + originX;
+        double absOriginY = y + originY;
+
+        var corners = new Point[]
+        {
+            new Point(0, 0),
+            new Point(w, 0),
+            new Point(w, h),
+            new Point(0, h)
+        };
+
+        double minX = double.MaxValue;
+        double minY = double.MaxValue;
+        double maxX = double.MinValue;
+        double maxY = double.MinValue;
+
+        double rad = rotation * Math.PI / 180.0;
+        double cos = Math.Round(Math.Cos(rad));
+        double sin = Math.Round(Math.Sin(rad));
+
+        foreach (var corner in corners)
+        {
+            double relX = corner.X - originX;
+            double relY = corner.Y - originY;
+
+            double rotX = relX * cos - relY * sin;
+            double rotY = relX * sin + relY * cos;
+
+            double absX = absOriginX + rotX;
+            double absY = absOriginY + rotY;
+
+            if (absX < minX) minX = absX;
+            if (absY < minY) minY = absY;
+            if (absX > maxX) maxX = absX;
+            if (absY > maxY) maxY = absY;
+        }
+
+        return new Rect(minX, minY, maxX - minX, maxY - minY);
+    }
+
     public void PrepareDrag(Canvas mapCanvas)
     {
         _lastRawMousePosition = new Point(-1000, -1000);
@@ -32,6 +89,24 @@ public sealed class TileSnappingEngine
 
             double tileW = double.IsNaN(ctrl.Width) ? grid : ctrl.Width;
             double tileH = double.IsNaN(ctrl.Height) ? grid : ctrl.Height;
+
+            int rotation = 0;
+            RelativePoint origin = RelativePoint.TopLeft;
+
+            if (ctrl.Tag is PlacedTileItem placedTile)
+                rotation = placedTile.RotationDegrees;
+
+            if (ctrl is Avalonia.Controls.Image img)
+                origin = img.RenderTransformOrigin;
+
+            // We only skip arbitrarily rotated tiles. For multiples of 90, compute visual true bounds to be snapped against.
+            if (rotation % 90 != 0) continue; 
+
+            Rect bbox = GetBoundingBox(tileX, tileY, tileW, tileH, rotation, origin);
+            tileX = bbox.X;
+            tileY = bbox.Y;
+            tileW = bbox.Width;
+            tileH = bbox.Height;
 
             int startBucketX = (int)Math.Floor(tileX / grid);
             int startBucketY = (int)Math.Floor(tileY / grid);
@@ -70,7 +145,7 @@ public sealed class TileSnappingEngine
 
     public void SetLastSnappedPosition(Point position) => _lastSnappedPosition = position;
 
-    public Point GetSnappedPosition(Point mousePosition, Canvas mapCanvas, double dragWidth, double dragHeight, Point? dragOffset = null)
+    public Point GetSnappedPosition(Point mousePosition, Canvas mapCanvas, double dragWidth, double dragHeight, Point? dragOffset = null, int dragRotation = 0, RelativePoint? dragOrigin = null)
     {
         double grid = CoordinateMapper.CanvasTileSize;
 
@@ -91,93 +166,104 @@ public sealed class TileSnappingEngine
         if (!IsSnappingEnabled)
             return new Point(targetX, targetY);
 
+        RelativePoint origin = dragOrigin ?? RelativePoint.TopLeft;
+
+        Rect dragBBox = GetBoundingBox(targetX, targetY, dragWidth, dragHeight, dragRotation, origin);
+        double diffX = dragBBox.X - targetX;
+        double diffY = dragBBox.Y - targetY;
+
         double snapThreshold = 48.0;
         double bestDistSq = snapThreshold * snapThreshold;
 
-        Point bestSnap = new(targetX, targetY);
+        Point bestSnapBBox = new Point(dragBBox.X, dragBBox.Y);
         bool foundSnap = false;
 
-        double gridX = Math.Round(targetX / grid) * grid;
-        double gridY = Math.Round(targetY / grid) * grid;
+        // Snapping Priority 1: Snap the anchor mathematically, placing the visual center exactly on a grid point.
+        double originX = origin.Unit == RelativeUnit.Relative ? origin.Point.X * dragWidth : origin.Point.X;
+        double originY = origin.Unit == RelativeUnit.Relative ? origin.Point.Y * dragHeight : origin.Point.Y;
 
-        gridX = Math.Clamp(gridX, 0, maxX);
-        gridY = Math.Clamp(gridY, 0, maxY);
+        double anchorAbsX = targetX + originX;
+        double anchorAbsY = targetY + originY;
 
-        double distToGridSq = Math.Pow(targetX - gridX, 2) + Math.Pow(targetY - gridY, 2);
+        double gridX = Math.Round(anchorAbsX / grid) * grid;
+        double gridY = Math.Round(anchorAbsY / grid) * grid;
+
+        double distToGridSq = Math.Pow(anchorAbsX - gridX, 2) + Math.Pow(anchorAbsY - gridY, 2);
         if (distToGridSq < bestDistSq)
         {
             bestDistSq = distToGridSq;
-            bestSnap = new Point(gridX, gridY);
+            bestSnapBBox = new Point(gridX - originX + diffX, gridY - originY + diffY);
             foundSnap = true;
         }
 
-        int mouseBucketX = (int)(targetX / grid);
-        int mouseBucketY = (int)(targetY / grid);
-
-        for (int bx = mouseBucketX - 2; bx <= mouseBucketX + 2; bx++)
+        if (dragRotation % 90 == 0) // We can snap to other tiles if our dragged tile is perfectly orthogonal
         {
-            for (int by = mouseBucketY - 2; by <= mouseBucketY + 2; by++)
+            double snapTargetX = dragBBox.X;
+            double snapTargetY = dragBBox.Y;
+
+            int mouseBucketX = (int)(snapTargetX / grid);
+            int mouseBucketY = (int)(snapTargetY / grid);
+
+            for (int bx = mouseBucketX - 2; bx <= mouseBucketX + 2; bx++)
             {
-                if (!_spatialHash.TryGetValue((bx, by), out var tilesInBucket)) continue;
-
-                foreach (var cachedRect in tilesInBucket)
+                for (int by = mouseBucketY - 2; by <= mouseBucketY + 2; by++)
                 {
-                    double imgX = cachedRect.X;
-                    double imgY = cachedRect.Y;
-                    double imgW = cachedRect.Width;
-                    double imgH = cachedRect.Height;
+                    if (!_spatialHash.TryGetValue((bx, by), out var tilesInBucket)) continue;
 
-                    if (Math.Abs(imgX - targetX) > (Math.Max(dragWidth, imgW) + snapThreshold) ||
-                        Math.Abs(imgY - targetY) > (Math.Max(dragHeight, imgH) + snapThreshold))
+                    foreach (var cachedRect in tilesInBucket)
                     {
-                        continue;
-                    }
+                        double imgX = cachedRect.X;
+                        double imgY = cachedRect.Y;
+                        double imgW = cachedRect.Width;
+                        double imgH = cachedRect.Height;
 
-                    int xSegments = Math.Max(0, (int)Math.Floor(imgW / grid));
-                    int ySegments = Math.Max(0, (int)Math.Floor(imgH / grid));
-
-                    var xAnchors = new List<double>(xSegments + 3) { imgX };
-                    for (int i = 1; i <= xSegments; i++)
-                        xAnchors.Add(imgX + (i * grid));
-                    xAnchors.Add(imgX + imgW);
-
-                    var yAnchors = new List<double>(ySegments + 3) { imgY };
-                    for (int i = 1; i <= ySegments; i++)
-                        yAnchors.Add(imgY + (i * grid));
-                    yAnchors.Add(imgY + imgH);
-
-                    // NEW: allow snapping when dragged tile approaches from right/bottom OR left/top
-                    // targetX is dragged tile top-left X, so include both "anchor" and "anchor - dragWidth"
-                    var targetXAnchors = new List<double>(xAnchors.Count * 2);
-                    foreach (var ax in xAnchors)
-                    {
-                        targetXAnchors.Add(ax);
-                        targetXAnchors.Add(ax - dragWidth);
-                    }
-
-                    // targetY is dragged tile top-left Y, so include both "anchor" and "anchor - dragHeight"
-                    var targetYAnchors = new List<double>(yAnchors.Count * 2);
-                    foreach (var ay in yAnchors)
-                    {
-                        targetYAnchors.Add(ay);
-                        targetYAnchors.Add(ay - dragHeight);
-                    }
-
-                    foreach (var tx in targetXAnchors)
-                    {
-                        foreach (var ty in targetYAnchors)
+                        if (Math.Abs(imgX - snapTargetX) > (Math.Max(dragBBox.Width, imgW) + snapThreshold) ||
+                            Math.Abs(imgY - snapTargetY) > (Math.Max(dragBBox.Height, imgH) + snapThreshold))
                         {
-                            if (tx < 0 || ty < 0 || tx > maxX || ty > maxY) continue;
+                            continue;
+                        }
 
-                            double distSq = Math.Pow(targetX - tx, 2) + Math.Pow(targetY - ty, 2);
-                            if (distSq <= bestDistSq + 25)
+                        int xSegments = Math.Max(0, (int)Math.Floor(imgW / grid));
+                        int ySegments = Math.Max(0, (int)Math.Floor(imgH / grid));
+
+                        var xAnchors = new List<double>(xSegments + 3) { imgX };
+                        for (int i = 1; i <= xSegments; i++)
+                            xAnchors.Add(imgX + (i * grid));
+                        xAnchors.Add(imgX + imgW);
+
+                        var yAnchors = new List<double>(ySegments + 3) { imgY };
+                        for (int i = 1; i <= ySegments; i++)
+                            yAnchors.Add(imgY + (i * grid));
+                        yAnchors.Add(imgY + imgH);
+
+                        var targetXAnchors = new List<double>(xAnchors.Count * 2);
+                        foreach (var ax in xAnchors)
+                        {
+                            targetXAnchors.Add(ax);
+                            targetXAnchors.Add(ax - dragBBox.Width);
+                        }
+
+                        var targetYAnchors = new List<double>(yAnchors.Count * 2);
+                        foreach (var ay in yAnchors)
+                        {
+                            targetYAnchors.Add(ay);
+                            targetYAnchors.Add(ay - dragBBox.Height);
+                        }
+
+                        foreach (var tx in targetXAnchors)
+                        {
+                            foreach (var ty in targetYAnchors)
                             {
-                                bestDistSq = distSq;
-                                bestSnap = new Point(tx, ty);
-                                foundSnap = true;
+                                double distSq = Math.Pow(snapTargetX - tx, 2) + Math.Pow(snapTargetY - ty, 2);
+                                if (distSq <= bestDistSq + 25)
+                                {
+                                    bestDistSq = distSq;
+                                    bestSnapBBox = new Point(tx, ty);
+                                    foundSnap = true;
 
-                                if (bestDistSq < 1.0)
-                                    return bestSnap;
+                                    if (bestDistSq < 1.0)
+                                        goto EndSnapping;
+                                }
                             }
                         }
                     }
@@ -185,7 +271,13 @@ public sealed class TileSnappingEngine
             }
         }
 
-        return foundSnap ? bestSnap : new Point(targetX, targetY);
+    EndSnapping:
+        if (foundSnap)
+        {
+            return new Point(bestSnapBBox.X - diffX, bestSnapBBox.Y - diffY);
+        }
+
+        return new Point(targetX, targetY);
     }
 
     public Point GetSnappedPosition(Point mousePosition, Canvas mapCanvas)

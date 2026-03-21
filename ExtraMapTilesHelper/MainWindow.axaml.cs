@@ -294,15 +294,23 @@ public partial class MainWindow : Window
 
         double dragW = CoordinateMapper.CanvasTileSize;
         double dragH = CoordinateMapper.CanvasTileSize;
+        int dragRotation = 0;
+        RelativePoint? dragOrigin = null;
 
         if (e.Data.Contains("SourceImage") && e.Data.Get("SourceImage") is Image sourceImage)
         {
             dragW = sourceImage.Width;
             dragH = sourceImage.Height;
+            dragOrigin = sourceImage.RenderTransformOrigin;
+        }
+        
+        if (e.Data.Contains("MovePlacedTile") && e.Data.Get("MovePlacedTile") is PlacedTileItem mt)
+        {
+            dragRotation = mt.RotationDegrees;
         }
 
         Point? dragOffset = e.Data.Contains("DragOffset") ? (Point?)e.Data.Get("DragOffset") : null;
-        var snappedPosition = _snappingEngine.GetSnappedPosition(position, MapCanvas, dragW, dragH, dragOffset);
+        var snappedPosition = _snappingEngine.GetSnappedPosition(position, MapCanvas, dragW, dragH, dragOffset, dragRotation, dragOrigin);
 
         if (_snappingEngine.IsSameSnappedPosition(snappedPosition))
         {
@@ -337,7 +345,7 @@ public partial class MainWindow : Window
         {
             var dropPosition = e.GetPosition(MapCanvas);
             Point? dragOffset = e.Data.Contains("DragOffset") ? (Point?)e.Data.Get("DragOffset") : null;
-            var finalPosition = _snappingEngine.GetSnappedPosition(dropPosition, MapCanvas, sourceImage.Width, sourceImage.Height, dragOffset);
+            var finalPosition = _snappingEngine.GetSnappedPosition(dropPosition, MapCanvas, sourceImage.Width, sourceImage.Height, dragOffset, moveTile.RotationDegrees, sourceImage.RenderTransformOrigin);
 
             _tilePositionHelper.UpdateFromCoordinates(moveTile, finalPosition.X, finalPosition.Y);
             Canvas.SetLeft(sourceImage, moveTile.X);
