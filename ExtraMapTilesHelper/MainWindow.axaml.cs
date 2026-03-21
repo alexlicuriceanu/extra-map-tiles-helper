@@ -104,13 +104,12 @@ public partial class MainWindow : Window
         double halfW = image.Width / 2.0;
         double halfH = image.Height / 2.0;
 
-        // Keep the currently displayed coords/offsets as the same numeric value,
-        // but reinterpret them with the new anchor mode by shifting the tile.
         bool centered = IsCenteredMode;
         double newX = centered ? tile.X - halfW : tile.X + halfW;
         double newY = centered ? tile.Y - halfH : tile.Y + halfH;
 
         _tilePositionHelper.UpdateFromCoordinates(tile, newX, newY);
+        ApplyTileRotation(image, tile);
         OnTilePositionUpdated(tile);
     }
 
@@ -217,6 +216,20 @@ public partial class MainWindow : Window
             DragHighlight.Width = CoordinateMapper.CanvasTileSize;
             DragHighlight.Height = CoordinateMapper.CanvasTileSize;
         }
+
+        if (e.Data.Contains("MovePlacedTile") && e.Data.Get("MovePlacedTile") is PlacedTileItem moveTile)
+        {
+            var origin = IsCenteredMode
+                ? new RelativePoint(0.5, 0.5, RelativeUnit.Relative)
+                : new RelativePoint(0.0, 0.0, RelativeUnit.Relative);
+
+            DragHighlight.RenderTransformOrigin = origin;
+            DragHighlight.RenderTransform = new RotateTransform(moveTile.RotationDegrees);
+        }
+        else
+        {
+            DragHighlight.RenderTransform = null;
+        }
     }
 
     private void OnCanvasDragOver(object? sender, DragEventArgs e)
@@ -246,7 +259,8 @@ public partial class MainWindow : Window
             dragH = sourceImage.Height;
         }
 
-        var snappedPosition = _snappingEngine.GetSnappedPosition(position, MapCanvas, dragW, dragH);
+        Point? dragOffset = e.Data.Contains("DragOffset") ? (Point?)e.Data.Get("DragOffset") : null;
+        var snappedPosition = _snappingEngine.GetSnappedPosition(position, MapCanvas, dragW, dragH, dragOffset);
 
         if (_snappingEngine.IsSameSnappedPosition(snappedPosition))
         {
@@ -280,7 +294,8 @@ public partial class MainWindow : Window
         if (e.Data.Contains("MovePlacedTile") && e.Data.Get("MovePlacedTile") is PlacedTileItem moveTile && e.Data.Get("SourceImage") is Image sourceImage)
         {
             var dropPosition = e.GetPosition(MapCanvas);
-            var finalPosition = _snappingEngine.GetSnappedPosition(dropPosition, MapCanvas, sourceImage.Width, sourceImage.Height);
+            Point? dragOffset = e.Data.Contains("DragOffset") ? (Point?)e.Data.Get("DragOffset") : null;
+            var finalPosition = _snappingEngine.GetSnappedPosition(dropPosition, MapCanvas, sourceImage.Width, sourceImage.Height, dragOffset);
 
             _tilePositionHelper.UpdateFromCoordinates(moveTile, finalPosition.X, finalPosition.Y);
             Canvas.SetLeft(sourceImage, moveTile.X);
@@ -317,6 +332,8 @@ public partial class MainWindow : Window
                 ZIndex = 6,
                 Opacity = placedTile.Alpha / 100.0
             };
+
+            ApplyTileRotation(mapImage, placedTile);
 
             mapImage.PointerPressed += OnPlacedTilePointerPressed;
             mapImage.PointerMoved += OnPlacedTilePointerMoved;
@@ -373,6 +390,9 @@ public partial class MainWindow : Window
             dragData.Set("MovePlacedTile", tile);
             dragData.Set("SourceImage", mapImage);
 
+            var dragOffset = new Point(_tileDragStartPoint.Value.X - tile.X, _tileDragStartPoint.Value.Y - tile.Y);
+            dragData.Set("DragOffset", dragOffset);
+
             await DragDrop.DoDragDrop(e, dragData, DragDropEffects.Move);
 
             _isDraggingTile = false;
@@ -420,6 +440,8 @@ public partial class MainWindow : Window
         Canvas.SetTop(SelectionHighlight, tile.Y);
         SelectionHighlight.IsVisible = true;
 
+        ApplyTileRotation(image, tile);
+
         _isUpdatingBoxes = false;
 
         UpdateCoordinateEditorUi();
@@ -436,6 +458,7 @@ public partial class MainWindow : Window
         Canvas.SetLeft(SelectionHighlight, tile.X);
         Canvas.SetTop(SelectionHighlight, tile.Y);
 
+        ApplyTileRotation(selectedImage, tile);
         UpdateCoordinateEditorUi();
     }
 
@@ -557,6 +580,28 @@ public partial class MainWindow : Window
         }
     }
 
+    private static int NormalizeDegrees(int value)
+    {
+        int normalized = value % 360;
+        return normalized < 0 ? normalized + 360 : normalized;
+    }
+
+    private void ApplyTileRotation(Image image, PlacedTileItem tile)
+    {
+        var origin = IsCenteredMode
+            ? new RelativePoint(0.5, 0.5, RelativeUnit.Relative)
+            : new RelativePoint(0.0, 0.0, RelativeUnit.Relative);
+
+        image.RenderTransformOrigin = origin;
+        image.RenderTransform = new RotateTransform(tile.RotationDegrees);
+
+        if (_selectionController?.CurrentTile == tile)
+        {
+            SelectionHighlight.RenderTransformOrigin = origin;
+            SelectionHighlight.RenderTransform = new RotateTransform(tile.RotationDegrees);
+        }
+    }
+
     private bool IsOffsetMode => CoordinateModeToggle.IsChecked == true;
     private bool IsCenteredMode => CenteredToggle.IsChecked == true;
 
@@ -600,7 +645,27 @@ public partial class MainWindow : Window
         EditAlphaBox.Value = (decimal)tile.Alpha;
         EditScaleXBox.Value = (decimal)tile.ScaleX;
         EditScaleYBox.Value = (decimal)tile.ScaleY;
+        EditRotationBox.Value = tile.RotationDegrees;
 
+        _isUpdatingBoxes = false;
+    }
+
+    private void OnEditRotationBoxValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (_isUpdatingBoxes || !e.NewValue.HasValue) return;
+
+        var tile = _selectionController.CurrentTile;
+        var image = _selectionController.CurrentImage;
+        if (tile == null || image == null) return;
+
+        int raw = (int)Math.Round((double)e.NewValue.Value);
+        int normalized = NormalizeDegrees(raw);
+
+        tile.RotationDegrees = normalized;
+        ApplyTileRotation(image, tile);
+
+        _isUpdatingBoxes = true;
+        EditRotationBox.Value = normalized;
         _isUpdatingBoxes = false;
     }
 }

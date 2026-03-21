@@ -70,12 +70,17 @@ public sealed class TileSnappingEngine
 
     public void SetLastSnappedPosition(Point position) => _lastSnappedPosition = position;
 
-    public Point GetSnappedPosition(Point mousePosition, Canvas mapCanvas, double dragWidth, double dragHeight)
+    public Point GetSnappedPosition(Point mousePosition, Canvas mapCanvas, double dragWidth, double dragHeight, Point? dragOffset = null)
     {
         double grid = CoordinateMapper.CanvasTileSize;
 
-        double targetX = mousePosition.X - (dragWidth / 2);
-        double targetY = mousePosition.Y - (dragHeight / 2);
+        double targetX = dragOffset.HasValue 
+            ? mousePosition.X - dragOffset.Value.X 
+            : mousePosition.X - (dragWidth / 2);
+            
+        double targetY = dragOffset.HasValue 
+            ? mousePosition.Y - dragOffset.Value.Y 
+            : mousePosition.Y - (dragHeight / 2);
 
         double maxX = (double.IsNaN(mapCanvas.Width) ? 100000 : mapCanvas.Width) - dragWidth;
         double maxY = (double.IsNaN(mapCanvas.Height) ? 100000 : mapCanvas.Height) - dragHeight;

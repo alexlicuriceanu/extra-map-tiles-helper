@@ -190,7 +190,7 @@
                                         
                                         <StackPanel Spacing="5">
                                             <ToggleSwitch x:Name="CenteredToggle"
-                                                          OffContent="Top-left Anchor"
+                                                          OffContent="Centered"
                                                           OnContent="Centered"
                                                           IsChecked="False"
                                                           Checked="OnCenteredToggled"
@@ -205,7 +205,7 @@
                                         </StackPanel>
                                     </DockPanel>
 
-                                    <Grid RowDefinitions="Auto, Auto, Auto, Auto, Auto" ColumnDefinitions="Auto, *" DockPanel.Dock="Top">
+                                    <Grid RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto" ColumnDefinitions="Auto, *" DockPanel.Dock="Top">
                                         <TextBlock x:Name="EditXLabel" Grid.Row="0" Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
                                         <NumericUpDown x:Name="EditXBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,10" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
 
@@ -218,8 +218,11 @@
                                         <TextBlock Grid.Row="3" Grid.Column="0" Text="Scale X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
                                         <NumericUpDown x:Name="EditScaleXBox" Grid.Row="3" Grid.Column="1" Minimum="0.1" Maximum="10" Increment="0.1" Margin="0,0,0,10" ValueChanged="OnEditScaleBoxValueChanged"/>
 
-                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Scale Y:" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                        <NumericUpDown x:Name="EditScaleYBox" Grid.Row="4" Grid.Column="1" Minimum="0.1" Maximum="10" Increment="0.1" ValueChanged="OnEditScaleBoxValueChanged"/>
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Scale Y:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                                        <NumericUpDown x:Name="EditScaleYBox" Grid.Row="4" Grid.Column="1" Minimum="0.1" Maximum="10" Increment="0.1" Margin="0,0,0,10" ValueChanged="OnEditScaleBoxValueChanged"/>
+
+                                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Rotation:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <NumericUpDown x:Name="EditRotationBox" Grid.Row="5" Grid.Column="1" Increment="1.0" ValueChanged="OnEditRotationBoxValueChanged"/>
                                     </Grid>
                                 </DockPanel>
                             </ScrollViewer>

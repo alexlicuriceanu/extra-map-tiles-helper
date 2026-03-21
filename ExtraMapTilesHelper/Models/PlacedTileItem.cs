@@ -15,6 +15,7 @@ public class PlacedTileItem : INotifyPropertyChanged
     private double _alpha = 100.0;
     private double _scaleX = 1.0;
     private double _scaleY = 1.0;
+    private int _rotationDegrees;
 
     public required TextureItem Texture
     {
@@ -84,6 +85,12 @@ public class PlacedTileItem : INotifyPropertyChanged
     {
         get => _scaleY;
         set { if (_scaleY != value) { _scaleY = value; OnPropertyChanged(); } }
+    }
+
+    public int RotationDegrees
+    {
+        get => _rotationDegrees;
+        set { if (_rotationDegrees != value) { _rotationDegrees = value; OnPropertyChanged(); } }
     }
 
     public string YtdName => Texture?.DictionaryName ?? string.Empty;
