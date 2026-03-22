@@ -32,13 +32,13 @@ public static class CoordinateMapper
         var offsets = CoordinatesToOffsets(x, y);
         return new Point(
             GameOriginX + (offsets.X * GameTileSize),
-            GameOriginY + (offsets.Y * GameTileSize));
+            GameOriginY - (offsets.Y * GameTileSize)); // Y-axis is inverted
     }
 
     public static Point GameToCoordinates(double gameX, double gameY)
     {
         double offsetX = (gameX - GameOriginX) / GameTileSize;
-        double offsetY = (gameY - GameOriginY) / GameTileSize;
+        double offsetY = -(gameY - GameOriginY) / GameTileSize; // Y-axis is inverted
         return OffsetsToCoordinates(offsetX, offsetY);
     }
 }

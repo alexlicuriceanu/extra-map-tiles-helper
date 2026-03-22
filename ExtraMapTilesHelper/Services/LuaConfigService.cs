@@ -11,7 +11,12 @@ public class LuaConfigService
     public string GenerateLuaConfig(IEnumerable<PlacedTileItem> tiles)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("config = config or {}");
+        sb.AppendLine("config = {}");
+        sb.AppendLine("config.scaleform_minimap_main_map = \"minimap_main_map\"");
+        sb.AppendLine("config.scaleform_minimap = \"minimap\"");
+        sb.AppendLine("config.offset = 0.1\n");
+        sb.AppendLine("config.remove_blur = true");
+        sb.AppendLine("config.radar_masks = \"radar_masks\"\n");
         sb.AppendLine("config.tiles = {");
 
         int index = 1;
