@@ -17,7 +17,9 @@ public class PlacedTileItem : INotifyPropertyChanged
     private double _scaleY = 1.0;
     private int _rotationDegrees;
     private bool _centered;
+    private bool _isVisible = true;
     private bool _isOffsetMode = true;
+    private int _configId;
 
     public required TextureItem Texture
     {
@@ -31,7 +33,13 @@ public class PlacedTileItem : INotifyPropertyChanged
         }
     }
 
-    // World-space coordinates (canvas pixels)
+    public int ConfigId
+    {
+        get => _configId;
+        set { if (_configId != value) { _configId = value; OnPropertyChanged(); } }
+    }
+
+    // X, Y positions on canvas
     public double X
     {
         get => _x;
@@ -99,6 +107,12 @@ public class PlacedTileItem : INotifyPropertyChanged
     {
         get => _centered;
         set { if (_centered != value) { _centered = value; OnPropertyChanged(); } }
+    }
+
+    public bool IsVisible
+    {
+        get => _isVisible;
+        set { if (_isVisible != value) { _isVisible = value; OnPropertyChanged(); } }
     }
 
     public bool IsOffsetMode

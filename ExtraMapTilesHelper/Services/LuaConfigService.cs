@@ -49,7 +49,8 @@ public class LuaConfigService
             sb.AppendLine($"        y_scale = {tile.ScaleY.ToString("0.0###", CultureInfo.InvariantCulture)},");
             sb.AppendLine($"        rotation = {tile.RotationDegrees.ToString("0.0###", CultureInfo.InvariantCulture)},");
             sb.AppendLine($"        alpha = {(int)tile.Alpha},");
-            sb.AppendLine($"        centered = {(tile.Centered ? "true" : "false")}");
+            sb.AppendLine($"        centered = {(tile.Centered ? "true" : "false")},");            
+            sb.AppendLine($"        visible = {(tile.IsVisible ? "true" : "false")}");
             sb.AppendLine("    },");
             index++;
         }
@@ -88,6 +89,7 @@ public class LuaConfigService
                     case "rotation": if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double rot)) tileData.Rotation = rot; break;
                     case "alpha": if (int.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out int alpha)) tileData.Alpha = alpha; break;
                     case "centered": tileData.Centered = val.Equals("true", System.StringComparison.OrdinalIgnoreCase); break;
+                    case "visible": tileData.Visible = val.Equals("true", System.StringComparison.OrdinalIgnoreCase); break;
                 }
             }
 
@@ -112,4 +114,5 @@ public class ParsedTileData
     public double Rotation { get; set; }
     public int Alpha { get; set; } = 100;
     public bool Centered { get; set; }
+    public bool Visible { get; set; } = true;
 }

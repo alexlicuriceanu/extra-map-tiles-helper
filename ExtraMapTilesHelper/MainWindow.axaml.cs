@@ -3,12 +3,15 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using ExtraMapTilesHelper.Controllers;
 using ExtraMapTilesHelper.Models;
 using ExtraMapTilesHelper.Services;
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -51,6 +54,7 @@ public partial class MainWindow : Window
         AddHandler(DragDrop.DragEnterEvent, OnCanvasDragEnter);
 
         Dictionaries.CollectionChanged += (s, e) => UpdateDictionaryCount();
+        PlacedTiles.CollectionChanged += OnPlacedTilesCollectionChanged;
         UpdateDictionaryCount();
     }
 
@@ -81,6 +85,19 @@ public partial class MainWindow : Window
         });
     }
 
+    private void UpdatePlacedTilesIds()
+    {
+        for (int i = 0; i < PlacedTiles.Count; i++)
+        {
+            PlacedTiles[i].ConfigId = i + 1; // +1 matching Lua output index
+        }
+
+        if (_selectionController?.CurrentTile != null)
+        {
+            SelectedTileName.Text = $"{_selectionController.CurrentTile.TxdName} (ID: {_selectionController.CurrentTile.ConfigId})";
+        }
+    }
+
     private void OnToggleDefaultTilesClicked(object? sender, RoutedEventArgs e)
     {
         if (sender is MenuItem menuItem)
@@ -97,13 +114,31 @@ public partial class MainWindow : Window
     private void OnCoordinateModeToggled(object? sender, RoutedEventArgs e)
     {
         if (_isUpdatingBoxes) return;
-        
+
         if (_selectionController.CurrentTile is { } tile)
             tile.IsOffsetMode = CoordinateModeToggle.IsChecked == true;
-            
+
         UpdateCoordinateEditorUi();
     }
-    
+
+    private void OnVisibleToggled(object? sender, RoutedEventArgs e)
+    {
+        if (_isUpdatingBoxes) return;
+
+        var tile = _selectionController.CurrentTile;
+        var image = _selectionController.CurrentImage;
+        if (tile == null || image == null) return;
+
+        tile.IsVisible = VisibleToggle.IsChecked == true;
+        UpdateTileVisualState(tile, image);
+    }
+
+    private void UpdateTileOpacity(PlacedTileItem tile, Image image)
+    {
+        double baseOpacity = tile.Alpha / 100.0;
+        image.Opacity = tile.IsVisible ? baseOpacity : baseOpacity * 0.1;
+    }
+
     private void OnCenteredToggled(object? sender, RoutedEventArgs e)
     {
         if (_isUpdatingBoxes) return;
@@ -142,9 +177,10 @@ public partial class MainWindow : Window
         var image = _selectionController.CurrentImage;
         if (tile == null || image == null) return;
 
-        // Reset Alpha
+        // Reset Alpha and Visibility
         tile.Alpha = 100.0;
-        image.Opacity = 1.0;
+        tile.IsVisible = true;
+        UpdateTileVisualState(tile, image);
 
         // Reset Rotation
         tile.RotationDegrees = 0;
@@ -223,7 +259,7 @@ public partial class MainWindow : Window
                     await writer.WriteAsync(luaContent);
                 }
 
-                SetStatus($"Successfully exported config to '{selectedFile.Path}'");
+                SetStatus($"Successfully exported config to '{selectedFile.Path.LocalPath}'"); // NEW: using LocalPath strips off file://
             }
             catch (Exception ex)
             {
@@ -361,7 +397,7 @@ public partial class MainWindow : Window
             dragH = sourceImage.Height;
             dragOrigin = sourceImage.RenderTransformOrigin;
         }
-        
+
         if (e.Data.Contains("MovePlacedTile") && e.Data.Get("MovePlacedTile") is PlacedTileItem mt)
         {
             dragRotation = mt.RotationDegrees;
@@ -437,11 +473,10 @@ public partial class MainWindow : Window
                 Height = CoordinateMapper.CanvasTileSize * placedTile.ScaleY,
                 Stretch = Stretch.Fill,
                 Tag = placedTile,
-                ZIndex = 6,
-                Opacity = placedTile.Alpha / 100.0
+                ZIndex = 6
             };
 
-            ApplyTileRotation(mapImage, placedTile);
+            UpdateTileVisualState(placedTile, mapImage);
 
             mapImage.PointerPressed += OnPlacedTilePointerPressed;
             mapImage.PointerMoved += OnPlacedTilePointerMoved;
@@ -538,7 +573,7 @@ public partial class MainWindow : Window
         _isUpdatingBoxes = true;
 
         TileEditorPanel.IsVisible = true;
-        SelectedTileName.Text = tile.TxdName;
+        SelectedTileName.Text = $"{tile.TxdName} (ID: {tile.ConfigId})"; // NEW
         SelectedTileYtd.Text = $"YTD: {tile.YtdName}";
         SelectedTilePreview.Source = tile.Texture.Preview;
 
@@ -627,7 +662,7 @@ public partial class MainWindow : Window
         if (tile != null && image != null)
         {
             tile.Alpha = (double)e.NewValue.Value;
-            image.Opacity = tile.Alpha / 100.0;
+            UpdateTileVisualState(tile, image);
         }
     }
 
@@ -720,10 +755,11 @@ public partial class MainWindow : Window
         if (tile == null || image == null) return;
 
         _isUpdatingBoxes = true;
-        
+
+        VisibleToggle.IsChecked = tile.IsVisible;
         CenteredToggle.IsChecked = tile.Centered;
         CoordinateModeToggle.IsChecked = tile.IsOffsetMode;
-        
+
         EditXLabel.Text = tile.IsOffsetMode ? "Offset X:" : "Game X:";
         EditYLabel.Text = tile.IsOffsetMode ? "Offset Y:" : "Game Y:";
 
@@ -778,5 +814,15 @@ public partial class MainWindow : Window
         _isUpdatingBoxes = true;
         EditRotationBox.Value = normalized;
         _isUpdatingBoxes = false;
+    }
+
+    private void OnPlacedTilesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        UpdatePlacedTilesIds();
+    }
+
+    private void UpdateTileVisualState(PlacedTileItem tile, Image image)
+    {
+        UpdateTileOpacity(tile, image);
     }
 }

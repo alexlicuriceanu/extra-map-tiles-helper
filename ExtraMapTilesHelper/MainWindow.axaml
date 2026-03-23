@@ -12,6 +12,24 @@
         Loaded="OnMainWindowLoaded"
         Icon="Assets/icon.ico">
 
+    <Window.Styles>
+        <!-- Custom Selection / Hover colors for ListBox -->
+        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#3a3a3a"/>
+        </Style>
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#3a3a3a"/>
+        </Style>
+
+        <!-- Tree item header-only hover/selected color -->
+        <Style Selector="Border.tree-item-header:pointerover">
+            <Setter Property="Background" Value="#3a3a3a"/>
+        </Style>
+        <Style Selector="TreeViewItem:selected Border.tree-item-header">
+            <Setter Property="Background" Value="#3a3a3a"/>
+        </Style>
+    </Window.Styles>
+
 	<LayoutTransformControl x:Name="RootTransform">
 	<DockPanel>
 		<DockPanel DockPanel.Dock="Top" Background="#282828">
@@ -68,26 +86,26 @@
 
 						<TreeView.DataTemplates>
 							<TreeDataTemplate DataType="models:DictionaryItem" ItemsSource="{Binding Textures}">
-								<Border Background="Transparent" PointerPressed="OnDictionaryPointerPressed">
-									<Border.ContextMenu>
-										<ContextMenu FontSize="12" FontFamily="Segoe UI Variable, Segoe UI">
-											<MenuItem Header="Remove from project"
-													  Tag="{Binding}"
-													  Click="OnRemoveDictionaryClicked" />
-										</ContextMenu>
-									</Border.ContextMenu>
-									<TextBlock Text="{Binding Name}" FontWeight="Normal" Foreground="White" Padding="0,5"/>
-								</Border>
-							</TreeDataTemplate>
+    <Border Classes="tree-item-header" Background="Transparent" PointerPressed="OnDictionaryPointerPressed">
+        <Border.ContextMenu>
+            <ContextMenu FontSize="12" FontFamily="Segoe UI Variable, Segoe UI">
+                <MenuItem Header="Remove from project"
+                          Tag="{Binding}"
+                          Click="OnRemoveDictionaryClicked" />
+            </ContextMenu>
+        </Border.ContextMenu>
+        <TextBlock Text="{Binding Name}" FontWeight="Normal" Foreground="White" Padding="0,5"/>
+    </Border>
+</TreeDataTemplate>
 
-							<DataTemplate DataType="models:TextureItem">
-								<Border Background="Transparent" PointerPressed="OnItemPointerPressed">
-									<StackPanel Orientation="Horizontal" Spacing="10">
-										<Image Source="{Binding Preview}" Width="48" Height="48" />
-										<TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
-									</StackPanel>
-								</Border>
-							</DataTemplate>
+<DataTemplate DataType="models:TextureItem">
+    <Border Classes="tree-item-header" Background="Transparent" PointerPressed="OnItemPointerPressed">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+            <Image Source="{Binding Preview}" Width="48" Height="48" />
+            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+        </StackPanel>
+    </Border>
+</DataTemplate>
 						</TreeView.DataTemplates>
 					</TreeView>
 				</DockPanel>
@@ -155,7 +173,7 @@
         Background="#1c1c1c"
         BorderBrush="#3e3e42"
         BorderThickness="1,1,0,0">
-                <Grid RowDefinitions="*,*">
+                <Grid RowDefinitions="*,Auto,*">
                     
                     <!-- Upper half: Selected Tile Properties -->
                     <Border Grid.Row="0" BorderBrush="#3e3e42" BorderThickness="0,0,0,1" Background="#1c1c1c">
@@ -198,6 +216,13 @@
                                         </StackPanel>
                                         
                                         <StackPanel Spacing="5">
+                                            <ToggleSwitch x:Name="VisibleToggle"
+                                                          OffContent="Visible"
+                                                          OnContent="Visible"
+                                                          IsChecked="True"
+                                                          Checked="OnVisibleToggled"
+                                                          Unchecked="OnVisibleToggled"/>
+                                                          
                                             <ToggleSwitch x:Name="CenteredToggle"
                                                           OffContent="Centered"
                                                           OnContent="Centered"
@@ -206,7 +231,7 @@
                                                           Unchecked="OnCenteredToggled"/>
 
                                             <ToggleSwitch x:Name="CoordinateModeToggle"
-                                                          OffContent="Coordinate Mode"
+                                                          OffContent="Offset Mode"
                                                           OnContent="Offset Mode"
                                                           IsChecked="True"
                                                           Checked="OnCoordinateModeToggled"
@@ -238,8 +263,11 @@
                         </DockPanel>
                     </Border>
 
+                    <!-- Resizer -->
+                    <GridSplitter Grid.Row="1" Background="#3e3e42" ResizeDirection="Rows" Height="4" HorizontalAlignment="Stretch" />
+
                     <!-- Lower half for Placed Tiles Queue -->
-                    <DockPanel Grid.Row="1" Background="#1c1c1c">
+                    <DockPanel Grid.Row="2" Background="#1c1c1c">
     <TextBlock DockPanel.Dock="Top" Text="Placed Tiles" FontWeight="Normal" Background="#282828" Foreground="White" Padding="10"/>
     
     <!-- ListBox inherently is scrollable when bounded inside a container -->
@@ -256,9 +284,9 @@
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock FontSize="11" Opacity="1.0">
                             <TextBlock.Text>
-                                <MultiBinding StringFormat="{}{0}">
+                                <MultiBinding StringFormat="{}{0} (ID: {1})">
                                     <Binding Path="TxdName" />
-                                    <Binding Path="YtdName" />
+                                    <Binding Path="ConfigId" />
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>
