@@ -62,7 +62,7 @@
 			</Menu>
 		</DockPanel>
 
-		<Grid ColumnDefinitions="300, *, 250">
+		<Grid ColumnDefinitions="300, *, 350">
 
 			<Border Grid.Column="0"
         Background="#1c1c1c"
@@ -77,37 +77,43 @@
                                Foreground="White"
                                Padding="10"/>
 
-					<TreeView x:Name="TextureTree" Background="Transparent" BorderThickness="0" Margin="10,5,10,10">
-						<TreeView.Styles>
-							<Style Selector="TreeViewItem">
-								<Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
-							</Style>
-						</TreeView.Styles>
+					<TreeView x:Name="TextureTree" Background="Transparent" BorderThickness="0" Margin="0,5,0,10">
+    <TreeView.Styles>
+    <Style Selector="TreeViewItem">
+        <Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
+    </Style>
+</TreeView.Styles>
 
-						<TreeView.DataTemplates>
-							<TreeDataTemplate DataType="models:DictionaryItem" ItemsSource="{Binding Textures}">
-    <Border Classes="tree-item-header" Background="Transparent" PointerPressed="OnDictionaryPointerPressed">
-        <Border.ContextMenu>
-            <ContextMenu FontSize="12" FontFamily="Segoe UI Variable, Segoe UI">
-                <MenuItem Header="Remove from project"
-                          Tag="{Binding}"
-                          Click="OnRemoveDictionaryClicked" />
-            </ContextMenu>
-        </Border.ContextMenu>
-        <TextBlock Text="{Binding Name}" FontWeight="Normal" Foreground="White" Padding="0,5"/>
-    </Border>
-</TreeDataTemplate>
+    <TreeView.DataTemplates>
+        <TreeDataTemplate DataType="models:DictionaryItem" ItemsSource="{Binding Textures}">
+            <Border Classes="tree-item-header"
+                    Background="Transparent"
+                    HorizontalAlignment="Stretch"
+                    PointerPressed="OnDictionaryPointerPressed">
+                <Border.ContextMenu>
+                    <ContextMenu FontSize="12" FontFamily="Segoe UI Variable, Segoe UI">
+                        <MenuItem Header="Remove from project"
+                                  Tag="{Binding}"
+                                  Click="OnRemoveDictionaryClicked" />
+                    </ContextMenu>
+                </Border.ContextMenu>
+                <TextBlock Text="{Binding Name}" FontWeight="Normal" Foreground="White" Padding="10,5"/>
+            </Border>
+        </TreeDataTemplate>
 
-<DataTemplate DataType="models:TextureItem">
-    <Border Classes="tree-item-header" Background="Transparent" PointerPressed="OnItemPointerPressed">
-        <StackPanel Orientation="Horizontal" Spacing="10">
-            <Image Source="{Binding Preview}" Width="48" Height="48" />
-            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
-        </StackPanel>
-    </Border>
-</DataTemplate>
-						</TreeView.DataTemplates>
-					</TreeView>
+        <DataTemplate DataType="models:TextureItem">
+            <Border Classes="tree-item-header"
+                    Background="Transparent"
+                    HorizontalAlignment="Stretch"
+                    PointerPressed="OnItemPointerPressed">
+                <StackPanel Orientation="Horizontal" Spacing="10" Margin="10,0,0,0">
+                    <Image Source="{Binding Preview}" Width="48" Height="48" />
+                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </TreeView.DataTemplates>
+</TreeView>
 				</DockPanel>
 			</Border>
 
@@ -187,10 +193,11 @@
 
                             <ScrollViewer x:Name="TileEditorPanel"
                                           IsVisible="False"
-                                          Margin="10,10,10,10"
+                                          Margin="10,10,0,10"
                                           VerticalScrollBarVisibility="Auto"
-                                          HorizontalScrollBarVisibility="Disabled">
-                                <DockPanel>
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          AllowAutoHide="True">
+    <DockPanel Margin="0">
                                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="0,0,0,15">
                                         <Image x:Name="SelectedTilePreview" Width="64" Height="64" Stretch="Uniform"/>
                                         <StackPanel VerticalAlignment="Center">
@@ -200,7 +207,7 @@
                                     </StackPanel>
 
                                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                                        <StackPanel DockPanel.Dock="Right" Spacing="5" VerticalAlignment="Center">
+                                        <StackPanel DockPanel.Dock="Right" Spacing="5" VerticalAlignment="Top">
                                             <Button Content="Remove"
                                                     Background="#d13438"
                                                     Foreground="White"
@@ -240,24 +247,31 @@
                                     </DockPanel>
 
                                     <Grid RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto" ColumnDefinitions="Auto, *" DockPanel.Dock="Top">
-                                        <TextBlock x:Name="EditXLabel" Grid.Row="0" Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
-                                        <NumericUpDown x:Name="EditXBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,10" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
+    <Grid.Styles>
+        <Style Selector="NumericUpDown">
+            <Setter Property="Width" Value="200"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+    </Grid.Styles>
 
-                                        <TextBlock x:Name="EditYLabel" Grid.Row="1" Grid.Column="0" Text="Y:" VerticalAlignment="Center" Margin="0,0,10,10"/>
-                                        <NumericUpDown x:Name="EditYBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,10" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
+    <TextBlock x:Name="EditXLabel" Grid.Row="0" Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+    <NumericUpDown x:Name="EditXBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,10" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
 
-                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Alpha:" VerticalAlignment="Center" Margin="0,0,10,10"/>
-                                        <NumericUpDown x:Name="EditAlphaBox" Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Increment="1.0" Margin="0,0,0,10" ValueChanged="OnEditAlphaBoxValueChanged"/>
+    <TextBlock x:Name="EditYLabel" Grid.Row="1" Grid.Column="0" Text="Y:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+    <NumericUpDown x:Name="EditYBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,10" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
 
-                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Scale X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
-                                        <NumericUpDown x:Name="EditScaleXBox" Grid.Row="3" Grid.Column="1" Minimum="0.1" Maximum="10" Increment="0.1" Margin="0,0,0,10" ValueChanged="OnEditScaleBoxValueChanged"/>
+    <TextBlock Grid.Row="2" Grid.Column="0" Text="Alpha:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+    <NumericUpDown x:Name="EditAlphaBox" Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Increment="1.0" Margin="0,0,0,10" ValueChanged="OnEditAlphaBoxValueChanged"/>
 
-                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Scale Y:" VerticalAlignment="Center" Margin="0,0,10,10"/>
-                                        <NumericUpDown x:Name="EditScaleYBox" Grid.Row="4" Grid.Column="1" Minimum="0.1" Maximum="10" Increment="0.1" Margin="0,0,0,10" ValueChanged="OnEditScaleBoxValueChanged"/>
+    <TextBlock Grid.Row="3" Grid.Column="0" Text="Scale X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+    <NumericUpDown x:Name="EditScaleXBox" Grid.Row="3" Grid.Column="1" Minimum="0.1" Maximum="10" Increment="0.1" Margin="0,0,0,10" ValueChanged="OnEditScaleBoxValueChanged"/>
 
-                                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Rotation:" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                        <NumericUpDown x:Name="EditRotationBox" Grid.Row="5" Grid.Column="1" Increment="1.0" ValueChanged="OnEditRotationBoxValueChanged"/>
-                                    </Grid>
+    <TextBlock Grid.Row="4" Grid.Column="0" Text="Scale Y:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+    <NumericUpDown x:Name="EditScaleYBox" Grid.Row="4" Grid.Column="1" Minimum="0.1" Maximum="10" Increment="0.1" Margin="0,0,0,10" ValueChanged="OnEditScaleBoxValueChanged"/>
+
+    <TextBlock Grid.Row="5" Grid.Column="0" Text="Rotation:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+    <NumericUpDown x:Name="EditRotationBox" Grid.Row="5" Grid.Column="1" Increment="1.0" ValueChanged="OnEditRotationBoxValueChanged"/>
+</Grid>
                                 </DockPanel>
                             </ScrollViewer>
                         </DockPanel>
