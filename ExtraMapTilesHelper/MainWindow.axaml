@@ -29,6 +29,11 @@
         <Style Selector="TreeViewItem:selected Border.tree-item-header">
             <Setter Property="Background" Value="#3a3a3a"/>
         </Style>
+
+        <!-- NEW: Dim FluentIcons inside disabled MenuItems -->
+        <Style Selector="MenuItem:disabled ic|FluentIcon">
+            <Setter Property="Opacity" Value="0.4"/>
+        </Style>
     </Window.Styles>
 
 	<LayoutTransformControl x:Name="RootTransform">
@@ -56,11 +61,11 @@
                     </MenuItem>
 
                     <Separator />
-                    <MenuItem Header="_Export Config" Click="OnExportConfigClicked">
-                        <MenuItem.Icon>
-                            <ic:FluentIcon Icon="Save" />
-                        </MenuItem.Icon>
-                    </MenuItem>
+                    <MenuItem x:Name="ExportConfigMenuItem" Header="_Export Config" Click="OnExportConfigClicked" IsEnabled="False">
+    <MenuItem.Icon>
+        <ic:FluentIcon Icon="Save" />
+    </MenuItem.Icon>
+</MenuItem>
     
                     <Separator/>
                     <MenuItem Header="E_xit" Click="OnExitClicked"/>

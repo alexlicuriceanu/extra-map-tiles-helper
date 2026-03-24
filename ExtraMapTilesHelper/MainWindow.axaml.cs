@@ -61,6 +61,7 @@ public partial class MainWindow : Window
         Dictionaries.CollectionChanged += (s, e) => UpdateDictionaryCount();
         PlacedTiles.CollectionChanged += OnPlacedTilesCollectionChanged;
         UpdateDictionaryCount();
+        UpdateExportConfigMenuState();
     }
 
     private void OnMainWindowLoaded(object? sender, RoutedEventArgs e)
@@ -854,6 +855,7 @@ public partial class MainWindow : Window
     private void OnPlacedTilesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         UpdatePlacedTilesIds();
+        UpdateExportConfigMenuState();
     }
 
     private void UpdateTileVisualState(PlacedTileItem tile, Image image)
@@ -1079,5 +1081,10 @@ public partial class MainWindow : Window
         int removedCount = PlacedTiles.Count;
         ClearPlacedTiles();
         SetStatus($"Removed {removedCount} placed tile(s)");
+    }
+
+    private void UpdateExportConfigMenuState()
+    {
+        ExportConfigMenuItem.IsEnabled = PlacedTiles.Count > 0;
     }
 }
