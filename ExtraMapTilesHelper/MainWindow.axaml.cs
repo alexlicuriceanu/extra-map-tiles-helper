@@ -258,6 +258,7 @@ public partial class MainWindow : Window
         var saveFileOptions = new Avalonia.Platform.Storage.FilePickerSaveOptions
         {
             Title = "Export Lua Config",
+            SuggestedFileName = "config.lua",
             DefaultExtension = "lua",
             FileTypeChoices =
             [
