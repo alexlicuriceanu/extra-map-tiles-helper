@@ -1067,4 +1067,17 @@ public partial class MainWindow : Window
         if (resolvedCount > 0)
             SetStatus($"Resolved {resolvedCount} missing texture(s)");
     }
+
+    private void OnRemoveAllPlacedTilesClicked(object? sender, RoutedEventArgs e)
+    {
+        if (PlacedTiles.Count == 0)
+        {
+            SetStatus("No placed tiles to remove");
+            return;
+        }
+
+        int removedCount = PlacedTiles.Count;
+        ClearPlacedTiles();
+        SetStatus($"Removed {removedCount} placed tile(s)");
+    }
 }
