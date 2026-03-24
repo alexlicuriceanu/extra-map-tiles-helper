@@ -834,23 +834,23 @@ public partial class MainWindow : Window
         if (tile.IsOffsetMode)
         {
             var offsets = CoordinateMapper.CoordinatesToOffsets(anchorX, anchorY);
-            EditXBox.Value = (decimal)offsets.X;
-            EditYBox.Value = (decimal)offsets.Y;
+            EditXBox.Value = Math.Round((decimal)offsets.X, 6);
+            EditYBox.Value = Math.Round((decimal)offsets.Y, 6);
             EditXBox.Increment = 1.0m;
             EditYBox.Increment = 1.0m;
         }
         else
         {
             var game = CoordinateMapper.CoordinatesToGame(anchorX, anchorY);
-            EditXBox.Value = (decimal)game.X;
-            EditYBox.Value = (decimal)game.Y;
+            EditXBox.Value = Math.Round((decimal)game.X, 6);
+            EditYBox.Value = Math.Round((decimal)game.Y, 6);
             EditXBox.Increment = 4500.0m;
             EditYBox.Increment = 4500.0m;
         }
 
-        EditAlphaBox.Value = (decimal)tile.Alpha;
-        EditScaleXBox.Value = (decimal)tile.ScaleX;
-        EditScaleYBox.Value = (decimal)tile.ScaleY;
+        EditAlphaBox.Value = Math.Round((decimal)tile.Alpha, 2);
+        EditScaleXBox.Value = Math.Round((decimal)tile.ScaleX, 5);
+        EditScaleYBox.Value = Math.Round((decimal)tile.ScaleY, 5);
         EditRotationBox.Value = tile.RotationDegrees;
 
         _isUpdatingBoxes = false;
