@@ -62,7 +62,8 @@ public sealed class ProjectController
                         newDict.Textures.Add(tex);
                     }
 
-                    Dispatcher.UIThread.Post(() => dictionaries.Add(newDict));
+                    // FIX: was Dispatcher.UIThread.Post(...)
+                    Dispatcher.UIThread.Invoke(() => dictionaries.Add(newDict));
 
                     current++;
                     setStatus($"Loading {dictName}.ytd ({current}/{total})");
@@ -116,5 +117,38 @@ public sealed class ProjectController
         }
 
         dictionaries.Remove(dictionary);
+    }
+
+    public void RemoveAllDictionaries(
+        ObservableCollection<DictionaryItem> dictionaries,
+        ObservableCollection<PlacedTileItem> placedTiles,
+        Canvas mapCanvas,
+        Action clearSelection)
+    {
+        var dictionaryNames = dictionaries
+            .Select(d => d.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var imageTilesToRemove = mapCanvas.Children
+            .OfType<Image>()
+            .Where(img => img.Tag is PlacedTileItem tile && dictionaryNames.Contains(tile.YtdName))
+            .ToList();
+
+        foreach (var image in imageTilesToRemove)
+        {
+            mapCanvas.Children.Remove(image);
+        }
+
+        var placedTilesToRemove = placedTiles
+            .Where(t => dictionaryNames.Contains(t.YtdName))
+            .ToList();
+
+        foreach (var tile in placedTilesToRemove)
+        {
+            placedTiles.Remove(tile);
+        }
+
+        clearSelection();
+        dictionaries.Clear();
     }
 }

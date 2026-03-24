@@ -20,6 +20,7 @@ public class PlacedTileItem : INotifyPropertyChanged
     private bool _isVisible = true;
     private bool _isOffsetMode = true;
     private int _configId;
+    private bool _isMissingTexture;
 
     public required TextureItem Texture
     {
@@ -119,6 +120,12 @@ public class PlacedTileItem : INotifyPropertyChanged
     {
         get => _isOffsetMode;
         set { if (_isOffsetMode != value) { _isOffsetMode = value; OnPropertyChanged(); } }
+    }
+
+    public bool IsMissingTexture
+    {
+        get => _isMissingTexture;
+        set { if (_isMissingTexture != value) { _isMissingTexture = value; OnPropertyChanged(); } }
     }
 
     public string YtdName => Texture?.DictionaryName ?? string.Empty;

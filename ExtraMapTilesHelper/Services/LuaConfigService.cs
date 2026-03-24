@@ -49,9 +49,9 @@ public class LuaConfigService
             sb.AppendLine($"        y_scale = {tile.ScaleY.ToString("0.0###", CultureInfo.InvariantCulture)},");
             sb.AppendLine($"        rotation = {tile.RotationDegrees.ToString("0.0###", CultureInfo.InvariantCulture)},");
             sb.AppendLine($"        alpha = {(int)tile.Alpha},");
-            sb.AppendLine($"        centered = {(tile.Centered ? "true" : "false")},");            
+            sb.AppendLine($"        centered = {(tile.Centered ? "true" : "false")},");
             sb.AppendLine($"        visible = {(tile.IsVisible ? "true" : "false")}");
-            sb.AppendLine("    },");
+            sb.AppendLine("    },"); // Removed the trailing comma from here
             index++;
         }
 
@@ -63,33 +63,90 @@ public class LuaConfigService
     {
         var tiles = new List<ParsedTileData>();
 
-        // Dynamically matches the inner context of each block inside the configuration: ["index"] = { ... } OR [1] = { ... }
-        var blockRegex = new Regex(@"\[(?:""[^""]+""|\d+)\]\s*=\s*\{([^}]+)\}", RegexOptions.Singleline);
-        // Extracts the key-value attributes inside the block (e.g., rotation = 0.0, or txd = "hello_world")
-        var fieldRegex = new Regex(@"([a-zA-Z_]+)\s*=\s*(?:""([^""]+)""|([^,\s}]+))");
+        var tilesBody = ExtractTilesTableBody(luaContent);
+        if (string.IsNullOrWhiteSpace(tilesBody))
+            return tiles;
 
-        foreach (Match blockMatch in blockRegex.Matches(luaContent))
+        var blockRegex = new Regex(@"\[(?:(?:'(?<idSingle>[^']+)')|(?:\""(?<idDouble>[^""]+)\"")|(?<idNumber>\d+))\]\s*=\s*\{(?<body>[^}]*)\}", RegexOptions.Singleline);
+        var fieldRegex = new Regex(@"([a-zA-Z_]+)\s*=\s*(?:(?:\""([^""]*)\"")|(?:'([^']*)')|([^,\s}]+))");
+
+        int fallbackId = 1;
+
+        foreach (Match blockMatch in blockRegex.Matches(tilesBody))
         {
-            var blockContent = blockMatch.Groups[1].Value;
-            var tileData = new ParsedTileData();
+            var idRaw = blockMatch.Groups["idSingle"].Success
+                ? blockMatch.Groups["idSingle"].Value
+                : blockMatch.Groups["idDouble"].Success
+                    ? blockMatch.Groups["idDouble"].Value
+                    : blockMatch.Groups["idNumber"].Value;
+
+            int parsedId = int.TryParse(idRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int id)
+                ? id
+                : fallbackId;
+
+            fallbackId++;
+
+            var blockContent = blockMatch.Groups["body"].Value;
+            var tileData = new ParsedTileData
+            {
+                ConfigId = parsedId
+            };
 
             foreach (Match fieldMatch in fieldRegex.Matches(blockContent))
             {
                 string key = fieldMatch.Groups[1].Value.Trim().ToLowerInvariant();
-                string val = fieldMatch.Groups[2].Success ? fieldMatch.Groups[2].Value : fieldMatch.Groups[3].Value.Trim();
+                string val = fieldMatch.Groups[2].Success
+                    ? fieldMatch.Groups[2].Value
+                    : fieldMatch.Groups[3].Success
+                        ? fieldMatch.Groups[3].Value
+                        : fieldMatch.Groups[4].Value.Trim();
 
                 switch (key)
                 {
-                    case "txd": tileData.DictionaryName = val; break;
-                    case "txn": tileData.TextureName = val; break;
-                    case "x_offset": if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double xo)) tileData.OffsetX = xo; break;
-                    case "y_offset": if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double yo)) tileData.OffsetY = yo; break;
-                    case "x_scale": if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double xs)) tileData.ScaleX = xs; break;
-                    case "y_scale": if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double ys)) tileData.ScaleY = ys; break;
-                    case "rotation": if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double rot)) tileData.Rotation = rot; break;
-                    case "alpha": if (int.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out int alpha)) tileData.Alpha = alpha; break;
-                    case "centered": tileData.Centered = val.Equals("true", System.StringComparison.OrdinalIgnoreCase); break;
-                    case "visible": tileData.Visible = val.Equals("true", System.StringComparison.OrdinalIgnoreCase); break;
+                    case "txd":
+                        tileData.DictionaryName = val;
+                        break;
+                    case "txn":
+                        tileData.TextureName = val;
+                        break;
+                    case "x_offset":
+                        if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double xo))
+                            tileData.OffsetX = xo;
+                        break;
+                    case "y_offset":
+                        if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double yo))
+                            tileData.OffsetY = yo;
+                        break;
+                    case "x":
+                        if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double gx))
+                            tileData.GameX = gx;
+                        break;
+                    case "y":
+                        if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double gy))
+                            tileData.GameY = gy;
+                        break;
+                    case "x_scale":
+                        if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double xs))
+                            tileData.ScaleX = xs;
+                        break;
+                    case "y_scale":
+                        if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double ys))
+                            tileData.ScaleY = ys;
+                        break;
+                    case "rotation":
+                        if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double rot))
+                            tileData.Rotation = rot;
+                        break;
+                    case "alpha":
+                        if (int.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out int alpha))
+                            tileData.Alpha = alpha;
+                        break;
+                    case "centered":
+                        tileData.Centered = val.Equals("true", System.StringComparison.OrdinalIgnoreCase);
+                        break;
+                    case "visible":
+                        tileData.Visible = val.Equals("true", System.StringComparison.OrdinalIgnoreCase);
+                        break;
                 }
             }
 
@@ -98,6 +155,71 @@ public class LuaConfigService
 
         return tiles;
     }
+
+    private static string ExtractTilesTableBody(string luaContent)
+    {
+        var markerMatch = Regex.Match(luaContent, @"config\.tiles\s*=\s*\{", RegexOptions.IgnoreCase);
+        if (!markerMatch.Success)
+            return string.Empty;
+
+        int openBraceIndex = luaContent.IndexOf('{', markerMatch.Index);
+        if (openBraceIndex < 0)
+            return string.Empty;
+
+        int depth = 0;
+        bool inSingleQuote = false;
+        bool inDoubleQuote = false;
+        bool escaped = false;
+
+        for (int i = openBraceIndex; i < luaContent.Length; i++)
+        {
+            char c = luaContent[i];
+
+            if (escaped)
+            {
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\')
+            {
+                escaped = true;
+                continue;
+            }
+
+            if (!inDoubleQuote && c == '\'')
+            {
+                inSingleQuote = !inSingleQuote;
+                continue;
+            }
+
+            if (!inSingleQuote && c == '"')
+            {
+                inDoubleQuote = !inDoubleQuote;
+                continue;
+            }
+
+            if (inSingleQuote || inDoubleQuote)
+                continue;
+
+            if (c == '{')
+                depth++;
+            else if (c == '}')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    int bodyStart = openBraceIndex + 1;
+                    int bodyLength = i - bodyStart;
+                    return bodyLength > 0
+                        ? luaContent.Substring(bodyStart, bodyLength)
+                        : string.Empty;
+                }
+            }
+        }
+
+        return string.Empty;
+    }
 }
 
 /// <summary>
@@ -105,14 +227,24 @@ public class LuaConfigService
 /// </summary>
 public class ParsedTileData
 {
+    public int ConfigId { get; set; }
+
     public string DictionaryName { get; set; } = string.Empty;
     public string TextureName { get; set; } = string.Empty;
-    public double OffsetX { get; set; }
-    public double OffsetY { get; set; }
+
+    public double? OffsetX { get; set; }
+    public double? OffsetY { get; set; }
+
+    public double? GameX { get; set; }
+    public double? GameY { get; set; }
+
     public double ScaleX { get; set; } = 1.0;
     public double ScaleY { get; set; } = 1.0;
     public double Rotation { get; set; }
     public int Alpha { get; set; } = 100;
     public bool Centered { get; set; }
     public bool Visible { get; set; } = true;
+
+    public bool HasOffsetCoordinates => OffsetX.HasValue && OffsetY.HasValue;
+    public bool HasGameCoordinates => GameX.HasValue && GameY.HasValue;
 }

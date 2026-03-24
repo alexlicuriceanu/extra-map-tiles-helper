@@ -4,11 +4,13 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using ExtraMapTilesHelper.Controllers;
 using ExtraMapTilesHelper.Models;
 using ExtraMapTilesHelper.Services;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.IO;
@@ -29,6 +31,9 @@ public partial class MainWindow : Window
     private readonly TilePositionHelper _tilePositionHelper = new();
     private readonly SelectionController _selectionController;
     private readonly ProjectController _projectController;
+    private readonly LuaConfigService _luaConfigService = new();
+
+    private Bitmap? _missingTextureBitmap;
 
     private bool _isUpdatingBoxes;
     private Point? _tileDragStartPoint;
@@ -87,9 +92,22 @@ public partial class MainWindow : Window
 
     private void UpdatePlacedTilesIds()
     {
-        for (int i = 0; i < PlacedTiles.Count; i++)
+        var usedIds = new HashSet<int>();
+        int nextId = 1;
+
+        foreach (var tile in PlacedTiles)
         {
-            PlacedTiles[i].ConfigId = i + 1; // +1 matching Lua output index
+            if (tile.ConfigId > 0 && !usedIds.Contains(tile.ConfigId))
+            {
+                usedIds.Add(tile.ConfigId);
+                continue;
+            }
+
+            while (usedIds.Contains(nextId))
+                nextId++;
+
+            tile.ConfigId = nextId;
+            usedIds.Add(nextId);
         }
 
         if (_selectionController?.CurrentTile != null)
@@ -221,6 +239,8 @@ public partial class MainWindow : Window
             Dictionaries,
             SetStatus,
             enabled => ImportMenuItem.IsEnabled = enabled);
+
+        TryResolveMissingPlacedTextures();
     }
 
     private async void OnExportConfigClicked(object? sender, RoutedEventArgs e)
@@ -250,8 +270,7 @@ public partial class MainWindow : Window
         {
             try
             {
-                var configService = new LuaConfigService();
-                string luaContent = configService.GenerateLuaConfig(PlacedTiles);
+                string luaContent = _luaConfigService.GenerateLuaConfig(PlacedTiles);
 
                 using (var stream = await selectedFile.OpenWriteAsync())
                 using (var writer = new System.IO.StreamWriter(stream))
@@ -679,7 +698,7 @@ public partial class MainWindow : Window
             }
         }
 
-        
+
     }
 
     private void OnEditScaleBoxValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
@@ -840,5 +859,212 @@ public partial class MainWindow : Window
     private void UpdateTileVisualState(PlacedTileItem tile, Image image)
     {
         UpdateTileOpacity(tile, image);
+    }
+
+    private async void OnImportConfigClicked(object? sender, RoutedEventArgs e)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+        {
+            Title = "Import Lua Config",
+            AllowMultiple = false,
+            FileTypeFilter = new[]
+            {
+                new Avalonia.Platform.Storage.FilePickerFileType("Lua files")
+                {
+                    Patterns = new[] { "*.lua" }
+                }
+            }
+        });
+
+        if (files.Count == 0)
+            return;
+
+        try
+        {
+            string luaContent;
+            using (var stream = await files[0].OpenReadAsync())
+            using (var reader = new StreamReader(stream))
+            {
+                luaContent = await reader.ReadToEndAsync();
+            }
+
+            var parsedTiles = _luaConfigService
+                .ParseLuaConfig(luaContent)
+                .OrderBy(t => t.ConfigId <= 0 ? int.MaxValue : t.ConfigId)
+                .ToList();
+
+            ClearPlacedTiles();
+
+            foreach (var parsed in parsedTiles)
+            {
+                AddImportedTile(parsed);
+            }
+
+            TryResolveMissingPlacedTextures();
+            SetStatus($"Imported {parsedTiles.Count} tile(s) from config");
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Failed to import config: {ex.Message}");
+        }
+    }
+
+    private void ClearPlacedTiles()
+    {
+        var placedTileImages = MapCanvas.Children
+            .OfType<Image>()
+            .Where(i => i.Tag is PlacedTileItem)
+            .ToList();
+
+        foreach (var image in placedTileImages)
+        {
+            image.PointerPressed -= OnPlacedTilePointerPressed;
+            image.PointerMoved -= OnPlacedTilePointerMoved;
+            image.PointerReleased -= OnPlacedTilePointerReleased;
+            MapCanvas.Children.Remove(image);
+        }
+
+        PlacedTiles.Clear();
+        PlacedTilesList.SelectedItem = null;
+        _selectionController.ClearSelection();
+    }
+
+    private void AddImportedTile(ParsedTileData parsed)
+    {
+        var texture = FindTexture(parsed.DictionaryName, parsed.TextureName);
+        bool isMissing = texture == null;
+
+        texture ??= CreateMissingTextureItem(parsed.DictionaryName, parsed.TextureName);
+
+        var tile = new PlacedTileItem
+        {
+            Texture = texture,
+            ConfigId = parsed.ConfigId,
+            ScaleX = parsed.ScaleX > 0 ? parsed.ScaleX : 1.0,
+            ScaleY = parsed.ScaleY > 0 ? parsed.ScaleY : 1.0,
+            RotationDegrees = NormalizeDegrees((int)Math.Round(parsed.Rotation)),
+            Alpha = Math.Clamp(parsed.Alpha, 0, 100),
+            Centered = parsed.Centered,
+            IsVisible = parsed.Visible,
+            IsOffsetMode = parsed.HasOffsetCoordinates || !parsed.HasGameCoordinates,
+            IsMissingTexture = isMissing
+        };
+
+        double width = CoordinateMapper.CanvasTileSize * tile.ScaleX;
+        double height = CoordinateMapper.CanvasTileSize * tile.ScaleY;
+
+        Point anchor = tile.IsOffsetMode
+            ? CoordinateMapper.OffsetsToCoordinates(parsed.OffsetX ?? 0.0, parsed.OffsetY ?? 0.0)
+            : CoordinateMapper.GameToCoordinates(parsed.GameX ?? 0.0, parsed.GameY ?? 0.0);
+
+        double x = tile.Centered ? anchor.X - (width / 2.0) : anchor.X;
+        double y = tile.Centered ? anchor.Y - (height / 2.0) : anchor.Y;
+
+        _tilePositionHelper.UpdateFromCoordinates(tile, x, y);
+
+        var mapImage = new Image
+        {
+            Source = GetCanvasTileImageSource(tile),
+            Width = width,
+            Height = height,
+            Stretch = Stretch.Fill,
+            Tag = tile,
+            ZIndex = 6
+        };
+
+        UpdateTileVisualState(tile, mapImage);
+        ApplyTileRotation(mapImage, tile);
+
+        mapImage.PointerPressed += OnPlacedTilePointerPressed;
+        mapImage.PointerMoved += OnPlacedTilePointerMoved;
+        mapImage.PointerReleased += OnPlacedTilePointerReleased;
+
+        Canvas.SetLeft(mapImage, tile.X);
+        Canvas.SetTop(mapImage, tile.Y);
+
+        MapCanvas.Children.Add(mapImage);
+        PlacedTiles.Add(tile);
+    }
+
+    private Avalonia.Media.IImage GetCanvasTileImageSource(PlacedTileItem tile)
+    {
+        if (!tile.IsMissingTexture &&
+            !string.IsNullOrWhiteSpace(tile.Texture.HighResFilePath) &&
+            File.Exists(tile.Texture.HighResFilePath))
+        {
+            try
+            {
+                using var stream = File.OpenRead(tile.Texture.HighResFilePath);
+                return Bitmap.DecodeToWidth(stream, 1024);
+            }
+            catch
+            {
+            }
+        }
+
+        return tile.Texture.Preview;
+    }
+
+    private TextureItem? FindTexture(string dictionaryName, string textureName)
+    {
+        if (string.IsNullOrWhiteSpace(dictionaryName) || string.IsNullOrWhiteSpace(textureName))
+            return null;
+
+        var dictionary = Dictionaries.FirstOrDefault(d =>
+            string.Equals(d.Name, dictionaryName, StringComparison.OrdinalIgnoreCase));
+
+        return dictionary?.Textures.FirstOrDefault(t =>
+            string.Equals(t.Name, textureName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private TextureItem CreateMissingTextureItem(string dictionaryName, string textureName)
+    {
+        return new TextureItem
+        {
+            Name = textureName,
+            DictionaryName = dictionaryName,
+            Preview = GetMissingTextureBitmap(),
+            HighResFilePath = string.Empty
+        };
+    }
+
+    private Bitmap GetMissingTextureBitmap()
+    {
+        if (_missingTextureBitmap != null)
+            return _missingTextureBitmap;
+
+        using var stream = AssetLoader.Open(new Uri("avares://ExtraMapTilesHelper/Assets/missing_texture.png"));
+        _missingTextureBitmap = new Bitmap(stream);
+        return _missingTextureBitmap;
+    }
+
+    private void TryResolveMissingPlacedTextures()
+    {
+        int resolvedCount = 0;
+
+        foreach (var tile in PlacedTiles.Where(t => t.IsMissingTexture).ToList())
+        {
+            var resolvedTexture = FindTexture(tile.YtdName, tile.TxdName);
+            if (resolvedTexture == null)
+                continue;
+
+            tile.Texture = resolvedTexture;
+            tile.IsMissingTexture = false;
+
+            var image = MapCanvas.Children
+                .OfType<Image>()
+                .FirstOrDefault(i => i.Tag == tile);
+
+            if (image != null)
+                image.Source = GetCanvasTileImageSource(tile);
+
+            if (_selectionController.CurrentTile == tile && _selectionController.CurrentImage == image && image != null)
+                OnSelectionChanged(tile, image);
+
+            resolvedCount++;
+        }
+
+        if (resolvedCount > 0)
+            SetStatus($"Resolved {resolvedCount} missing texture(s)");
     }
 }
