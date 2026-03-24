@@ -88,6 +88,10 @@ public partial class MainWindow : Window
         Dispatcher.UIThread.Post(() =>
         {
             DictionaryCountText.Text = $"Texture Dictionaries ({Dictionaries.Count})";
+            if (RemoveAllYtdsMenuItem != null)
+            {
+                RemoveAllYtdsMenuItem.IsEnabled = Dictionaries.Count > 0;
+            }
         });
     }
 
@@ -306,6 +310,25 @@ public partial class MainWindow : Window
             _selectionController.ClearSelection);
 
         PlacedTilesList.SelectedItem = null;
+    }
+
+    private void OnRemoveAllYtdsClicked(object? sender, RoutedEventArgs e)
+    {
+        if (Dictionaries.Count == 0)
+        {
+            SetStatus("No YTDs to remove");
+            return;
+        }
+
+        int removedCount = Dictionaries.Count;
+        _projectController.RemoveAllDictionaries(
+            Dictionaries,
+            PlacedTiles,
+            MapCanvas,
+            _selectionController.ClearSelection);
+
+        PlacedTilesList.SelectedItem = null;
+        SetStatus($"Removed {removedCount} dictionaries");
     }
 
     private void OnMapPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -1085,6 +1108,12 @@ public partial class MainWindow : Window
 
     private void UpdateExportConfigMenuState()
     {
-        ExportConfigMenuItem.IsEnabled = PlacedTiles.Count > 0;
+        bool hasTiles = PlacedTiles.Count > 0;
+        
+        if (ExportConfigMenuItem != null)
+            ExportConfigMenuItem.IsEnabled = hasTiles;
+            
+        if (RemoveAllPlacedTilesMenuItem != null)
+            RemoveAllPlacedTilesMenuItem.IsEnabled = hasTiles;
     }
 }

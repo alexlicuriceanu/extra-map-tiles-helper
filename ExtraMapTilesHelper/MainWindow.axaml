@@ -54,6 +54,8 @@
                         </MenuItem.Icon>
                     </MenuItem>
 
+                    
+
                     <MenuItem Header="Import _Config" Click="OnImportConfigClicked">
                         <MenuItem.Icon>
                             <ic:FluentIcon Icon="Document" />
@@ -68,14 +70,20 @@
 </MenuItem>
     
                     <Separator/>
-                    <MenuItem Header="E_xit" Click="OnExitClicked"/>
+                    <MenuItem x:Name="RemoveAllYtdsMenuItem" Header="Remove all _YTDs" Click="OnRemoveAllYtdsClicked" IsEnabled="False">
+                        <MenuItem.Icon>
+                            <ic:FluentIcon Icon="Delete" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="E_xit" Click="OnExitClicked">
                         <MenuItem.Icon>
                             <ic:FluentIcon Icon="ArrowExit" />
                         </MenuItem.Icon>
+                    </MenuItem>
                 </MenuItem>
 
 				<MenuItem Header="_Edit">
-					<MenuItem Header="Remove all placed tiles" Click="OnRemoveAllPlacedTilesClicked">
+					<MenuItem x:Name="RemoveAllPlacedTilesMenuItem" Header="Remove all placed tiles" Click="OnRemoveAllPlacedTilesClicked" IsEnabled="False">
                         <MenuItem.Icon>
                             <ic:FluentIcon Icon="Delete" />
                         </MenuItem.Icon>
