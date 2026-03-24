@@ -6,7 +6,7 @@
         Foreground="White"
         FontFamily="Segoe UI Variable, Segoe UI"
         FontSize="12"
-        Width="600" Height="450"
+        Width="600" Height="510"
         WindowStartupLocation="CenterOwner"
         Icon="Assets/icon.ico">
     
@@ -18,13 +18,16 @@
         <ScrollViewer Grid.Row="1" Margin="15">
             <StackPanel Spacing="10">
                 <TextBlock Text="Step 1: Importing Assets" FontWeight="Bold" FontSize="14" />
-                <TextBlock Text="Start by creating and dragging your .ytd dictionary or multiple .ytd files onto the viewport or use the 'Import YTDs' menu item. Your dictionaries will appear in the panel on the left." TextWrapping="Wrap" Foreground="#cccccc" />
+                <TextBlock Text="Start by importing your YTD files by clicking File > Import YTDs. Your dictionaries, along with the textures that they contain, will appear in the panel on the left. &#x0a;&#x0a;Optionally, you may also import a config.lua file by going to File > Import Config. You can do this either before or after importing YTD files. Tiles that are present in the config file but do not have a corresponding YTD loaded will be drawn with a 'Missing Texture' placeholder until the relevant YTD file(s) are imported." TextWrapping="Wrap" Foreground="#cccccc" />
 
                 <TextBlock Text="Step 2: Placing Tiles" FontWeight="Bold" FontSize="14" Margin="0,10,0,0" />
-                <TextBlock Text="Drag the imported textures from the left panel onto the main map. Use the 'Tile Snapping' feature to easily align your specific map tiles together." TextWrapping="Wrap" Foreground="#cccccc" />
+                <TextBlock Text="Drag the imported textures from the left panel onto the main map. Use the 'Tile Snapping' (enabled by default in Options > Tile Snapping) feature to easily align your specific map tiles together." TextWrapping="Wrap" Foreground="#cccccc" />
 
                 <TextBlock Text="Step 3: Configuration &amp; Adjustments" FontWeight="Bold" FontSize="14" Margin="0,10,0,0" />
-                <TextBlock Text="Select a tile on the map to modify its properties (position, scale, rotation, alpha, etc.) in the properties panel to the right." TextWrapping="Wrap" Foreground="#cccccc" />
+                <TextBlock Text="Left-click any placed tile to select it. Once selected, the top right panel will be populated with the parameters of the tile. To reposition a tile, simply click and drag it on the grid.  &#x0a;&#x0a;You can further configure these parameters to your liking by using the on/off toggles, up/down buttons, or by manually inputting values." TextWrapping="Wrap" Foreground="#cccccc" />
+
+                <TextBlock Text="Step 4: Exporting" FontWeight="Bold" FontSize="14" Margin="0,10,0,0" />
+                <TextBlock Text="When finished, click on File > Export Config to save the placed tiles' parameters. Restart the server or resource for the changes to take effect." TextWrapping="Wrap" Foreground="#cccccc" />
             </StackPanel>
         </ScrollViewer>
     </Grid>
