@@ -656,14 +656,30 @@ public partial class MainWindow : Window
     {
         if (_isUpdatingBoxes || !e.NewValue.HasValue) return;
 
-        var tile = _selectionController.CurrentTile;
-        var image = _selectionController.CurrentImage;
-
-        if (tile != null && image != null)
+        if (sender is NumericUpDown alphaBox && alphaBox.Value.HasValue)
         {
-            tile.Alpha = (double)e.NewValue.Value;
-            UpdateTileVisualState(tile, image);
+            if (alphaBox.Value > 100)
+            {
+                alphaBox.Value = 100;
+                return; // Exit early, setting the Value will re-trigger this event naturally!
+            }
+            else if (alphaBox.Value < 0)
+            {
+                alphaBox.Value = 0;
+                return;
+            }
+
+            var tile = _selectionController.CurrentTile;
+            var image = _selectionController.CurrentImage;
+
+            if (tile != null && image != null)
+            {
+                tile.Alpha = (double)e.NewValue.Value;
+                UpdateTileVisualState(tile, image);
+            }
         }
+
+        
     }
 
     private void OnEditScaleBoxValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)

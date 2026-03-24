@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:models="using:ExtraMapTilesHelper.Models"
+        xmlns:ic="using:FluentIcons.Avalonia"
         x:Class="ExtraMapTilesHelper.MainWindow"
         Title="Extra Map Tiles Helper"
         Background="#1c1c1c"
@@ -41,17 +42,31 @@
 			<!-- Modified: Set the menu's background to transparent since DockPanel now holds the color -->
 			<Menu Background="Transparent" Foreground="White">
 				<MenuItem Header="_File">
-					<MenuItem x:Name="ImportMenuItem" Header="_Import YTDs" Click="OnImportClicked"/>
-					<MenuItem Header="_Export Config" Click="OnExportConfigClicked"/>
-					<Separator/>
-					<MenuItem Header="E_xit" Click="OnExitClicked"/>
-				</MenuItem>
+    
+                    <MenuItem x:Name="ImportMenuItem" Header="_Import YTDs" Click="OnImportClicked">
+                        <MenuItem.Icon>
+                            <ic:FluentIcon Icon="DocumentAdd" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+
+                    <MenuItem Header="_Export Config" Click="OnExportConfigClicked">
+                        <MenuItem.Icon>
+                            <ic:FluentIcon Icon="Save" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+    
+                    <Separator/>
+                    <MenuItem Header="E_xit" Click="OnExitClicked"/>
+                        <MenuItem.Icon>
+                            <ic:FluentIcon Icon="ArrowExit" />
+                        </MenuItem.Icon>
+                </MenuItem>
 
 				<MenuItem Header="_View">
-					<MenuItem Click="OnResetViewClicked">
-						<MenuItem.Header>
-							<TextBlock Text="Reset View"/>
-						</MenuItem.Header>
+					<MenuItem Header="Reset View" Click="OnResetViewClicked">
+                        <MenuItem.Icon>
+							<ic:FluentIcon Icon="ArrowReset" />
+                        </MenuItem.Icon>
 					</MenuItem>
 				</MenuItem>
 				
@@ -192,12 +207,12 @@
                                        Padding="10"/>
 
                             <ScrollViewer x:Name="TileEditorPanel"
-                                          IsVisible="False"
-                                          Margin="10,10,0,10"
-                                          VerticalScrollBarVisibility="Auto"
-                                          HorizontalScrollBarVisibility="Disabled"
-                                          AllowAutoHide="True">
-    <DockPanel Margin="0">
+              IsVisible="False"
+              Margin="10,10,5,10" VerticalScrollBarVisibility="Auto"
+              HorizontalScrollBarVisibility="Disabled"
+              AllowAutoHide="True">
+    
+    <DockPanel Margin="0,0,25,0">
                                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="0,0,0,15">
                                         <Image x:Name="SelectedTilePreview" Width="64" Height="64" Stretch="Uniform"/>
                                         <StackPanel VerticalAlignment="Center">
@@ -247,11 +262,19 @@
                                     </DockPanel>
 
                                     <Grid RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto" ColumnDefinitions="Auto, *" DockPanel.Dock="Top">
-    <Grid.Styles>
+   <Grid.Styles>
         <Style Selector="NumericUpDown">
             <Setter Property="Width" Value="200"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
         </Style>
+
+       <Style Selector="NumericUpDown /template/ ButtonSpinner /template/ RepeatButton:disabled">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+
+    <Style Selector="NumericUpDown /template/ ButtonSpinner /template/ RepeatButton:disabled Path">
+        <Setter Property="Fill" Value="#cccccc" />
+    </Style>
     </Grid.Styles>
 
     <TextBlock x:Name="EditXLabel" Grid.Row="0" Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
@@ -261,7 +284,7 @@
     <NumericUpDown x:Name="EditYBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,10" Increment="1.0" ValueChanged="OnEditBoxValueChanged"/>
 
     <TextBlock Grid.Row="2" Grid.Column="0" Text="Alpha:" VerticalAlignment="Center" Margin="0,0,10,10"/>
-    <NumericUpDown x:Name="EditAlphaBox" Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Increment="1.0" Margin="0,0,0,10" ValueChanged="OnEditAlphaBoxValueChanged"/>
+    <NumericUpDown x:Name="EditAlphaBox" Grid.Row="2" Grid.Column="1" Increment="1.0" Margin="0,0,0,10" ValueChanged="OnEditAlphaBoxValueChanged"/>
 
     <TextBlock Grid.Row="3" Grid.Column="0" Text="Scale X:" VerticalAlignment="Center" Margin="0,0,10,10"/>
     <NumericUpDown x:Name="EditScaleXBox" Grid.Row="3" Grid.Column="1" Minimum="0.1" Maximum="10" Increment="0.1" Margin="0,0,0,10" ValueChanged="OnEditScaleBoxValueChanged"/>
