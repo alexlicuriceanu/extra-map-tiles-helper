@@ -29,9 +29,10 @@ public static class TempWorkspace
             {
                 Directory.Delete(RootPath, true);
             }
-            catch
+            catch (Exception ex)
             {
                 /* Ignore locked files */
+                System.Diagnostics.Debug.WriteLine($"Error in Cleanup: {ex.Message}");
             }
         }
     }

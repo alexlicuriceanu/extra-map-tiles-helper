@@ -42,8 +42,9 @@ public sealed class DefaultTiles
                     mapCanvas.Children.Add(mapImage);
                     _defaultTiles.Add(mapImage);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    System.Diagnostics.Debug.WriteLine($"Error in LoadTiles: {ex.Message}");
                 }
             }
         }

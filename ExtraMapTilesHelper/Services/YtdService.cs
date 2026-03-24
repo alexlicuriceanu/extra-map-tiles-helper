@@ -23,8 +23,15 @@ public class YtdService
         byte[] fileData = File.ReadAllBytes(filePath);
         var ytd = new YtdFile();
 
-        try { RpfFile.LoadResourceFile(ytd, fileData, 13); }
-        catch { return Array.Empty<TextureItem>(); }
+        try 
+        { 
+            RpfFile.LoadResourceFile(ytd, fileData, 13); 
+        }
+        catch (Exception ex)
+        { 
+            System.Diagnostics.Debug.WriteLine($"Error in ExtractTextures: {ex.Message}");
+            return Array.Empty<TextureItem>(); 
+        }
 
         var items = ytd.TextureDict?.Textures?.data_items;
         if (items == null) return Array.Empty<TextureItem>();

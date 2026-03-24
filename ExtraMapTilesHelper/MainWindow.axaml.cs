@@ -378,7 +378,10 @@ public partial class MainWindow : Window
             var dragPreview = Avalonia.Media.Imaging.Bitmap.DecodeToWidth(stream, 256);
             dragData.Set("DragImage", dragPreview);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in OnItemPointerPressed: {ex.Message}");
+        }
 
         await DragDrop.DoDragDrop(e, dragData, DragDropEffects.Copy);
     }
@@ -1037,8 +1040,9 @@ public partial class MainWindow : Window
                 using var stream = File.OpenRead(tile.Texture.HighResFilePath);
                 return Bitmap.DecodeToWidth(stream, 1024);
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error in GetCanvasTileImageSource: {ex.Message}");
             }
         }
 
