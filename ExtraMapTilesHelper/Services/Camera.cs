@@ -65,7 +65,7 @@ public sealed class Camera
     public void BeginPan(object? sender, PointerPressedEventArgs e)
     {
         var point = e.GetCurrentPoint(sender as Control);
-        if (!point.Properties.IsMiddleButtonPressed) return;
+        if (!point.Properties.IsMiddleButtonPressed && !point.Properties.IsLeftButtonPressed) return;
 
         _isPanning = true;
         _lastPanPoint = e.GetPosition(_mapScrollViewer);
@@ -91,7 +91,7 @@ public sealed class Camera
 
     public void EndPan(PointerReleasedEventArgs e)
     {
-        if (!_isPanning || e.InitialPressMouseButton != MouseButton.Middle) return;
+        if (!_isPanning || (e.InitialPressMouseButton != MouseButton.Middle && e.InitialPressMouseButton != MouseButton.Left)) return;
 
         _isPanning = false;
         _mapScrollViewer.Cursor = Cursor.Default;
