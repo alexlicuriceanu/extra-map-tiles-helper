@@ -52,6 +52,20 @@
             <Setter Property="Background" Value="#3a3a3a"/>
         </Style>
 
+        <!-- Override native ToggleSwitch checked color -->
+        <Style Selector="ToggleSwitch:checked /template/ Border#SwitchKnobBounds">
+            <Setter Property="Background" Value="#3a3a3a"/>
+            <Setter Property="BorderBrush" Value="#3a3a3a"/>
+        </Style>
+        <Style Selector="ToggleSwitch:checked:pointerover /template/ Border#SwitchKnobBounds">
+            <Setter Property="Background" Value="#505050"/>
+            <Setter Property="BorderBrush" Value="#505050"/>
+        </Style>
+        <Style Selector="ToggleSwitch:checked:pressed /template/ Border#SwitchKnobBounds">
+            <Setter Property="Background" Value="#282828"/>
+            <Setter Property="BorderBrush" Value="#282828"/>
+        </Style>
+
         <!-- NEW: Dim FluentIcons inside disabled MenuItems -->
         <Style Selector="MenuItem:disabled ic|FluentIcon">
             <Setter Property="Opacity" Value="0.4"/>
