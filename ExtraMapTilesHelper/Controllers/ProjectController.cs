@@ -51,7 +51,14 @@ public sealed class ProjectController
                     Dispatcher.UIThread.Invoke(() =>
                     {
                         var existingDict = dictionaries.FirstOrDefault(d => d.Name == dictName);
-                        if (existingDict != null) dictionaries.Remove(existingDict);
+                        if (existingDict != null)
+                        {
+                            foreach (var tex in existingDict.Textures)
+                            {
+                                (tex.Preview as IDisposable)?.Dispose();
+                            }
+                            dictionaries.Remove(existingDict);
+                        }
                     });
 
                     var newDict = new DictionaryItem { Name = dictName };
@@ -102,6 +109,12 @@ public sealed class ProjectController
 
         foreach (var image in imageTilesToRemove)
         {
+            if (image.Source is IDisposable disposableSource && 
+                image.Tag is PlacedTileItem pTile && 
+                pTile.Texture?.Preview != image.Source)
+            {
+                disposableSource.Dispose();
+            }
             mapCanvas.Children.Remove(image);
         }
 
@@ -114,6 +127,11 @@ public sealed class ProjectController
             string.Equals(currentSelectedTile.YtdName, dictionary.Name, StringComparison.Ordinal))
         {
             clearSelection();
+        }
+
+        foreach (var tex in dictionary.Textures)
+        {
+            (tex.Preview as IDisposable)?.Dispose();
         }
 
         dictionaries.Remove(dictionary);
@@ -136,6 +154,12 @@ public sealed class ProjectController
 
         foreach (var image in imageTilesToRemove)
         {
+            if (image.Source is IDisposable disposableSource && 
+                image.Tag is PlacedTileItem pTile && 
+                pTile.Texture?.Preview != image.Source)
+            {
+                disposableSource.Dispose();
+            }
             mapCanvas.Children.Remove(image);
         }
 
@@ -149,6 +173,15 @@ public sealed class ProjectController
         }
 
         clearSelection();
+
+        foreach (var dict in dictionaries)
+        {
+            foreach (var tex in dict.Textures)
+            {
+                (tex.Preview as IDisposable)?.Dispose();
+            }
+        }
+
         dictionaries.Clear();
     }
 }

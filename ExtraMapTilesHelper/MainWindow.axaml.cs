@@ -187,6 +187,15 @@ public partial class MainWindow : Window
     {
         if (_selectionController.CurrentTile is { } tile && _selectionController.CurrentImage is { } image)
         {
+            image.PointerPressed -= OnPlacedTilePointerPressed;
+            image.PointerMoved -= OnPlacedTilePointerMoved;
+            image.PointerReleased -= OnPlacedTilePointerReleased;
+
+            if (image.Source != null && image.Source is IDisposable disposable && image.Source != tile.Texture?.Preview)
+            {
+                disposable.Dispose();
+            }
+
             MapCanvas.Children.Remove(image);
             PlacedTiles.Remove(tile);
             _selectionController.ClearSelection();
@@ -946,6 +955,12 @@ public partial class MainWindow : Window
             image.PointerPressed -= OnPlacedTilePointerPressed;
             image.PointerMoved -= OnPlacedTilePointerMoved;
             image.PointerReleased -= OnPlacedTilePointerReleased;
+
+            if (image.Source != null && image.Tag is PlacedTileItem tile && image.Source != tile.Texture?.Preview && image.Source is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+
             MapCanvas.Children.Remove(image);
         }
 
