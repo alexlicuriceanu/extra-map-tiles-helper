@@ -35,7 +35,7 @@ public class YtdService
         // 2. PARALLEL PROCESSING: Max out the CPU cores!
         Parallel.ForEach(items, tex =>
         {
-            byte[] ddsBytes = GetDdsWithHeader(tex);
+            byte[]? ddsBytes = GetDdsWithHeader(tex);
             if (ddsBytes == null) return; // 'continue' becomes 'return' in a Parallel lambda
 
             string highResPath = Path.Combine(dictFolder, $"{tex.Name}.png");
@@ -125,14 +125,14 @@ public class YtdService
     {
         float ratio = Math.Min((float)maxSize / original.Width, (float)maxSize / original.Height);
         var resizeInfo = new SKImageInfo((int)(original.Width * ratio), (int)(original.Height * ratio), SKColorType.Bgra8888, SKAlphaType.Unpremul);
-        using var resizedBitmap = original.Resize(resizeInfo, SKFilterQuality.Low);
+        using var resizedBitmap = original.Resize(resizeInfo, new SKSamplingOptions(SKFilterMode.Linear));
         return SKImage.FromBitmap(resizedBitmap);
     }
 
-    private byte[] GetDdsWithHeader(Texture tex)
+    private byte[]? GetDdsWithHeader(Texture tex)
     {
         if (tex == null) return null;
-        byte[] textureData = tex.Data?.FullData;
+        byte[]? textureData = tex.Data?.FullData;
         if (textureData == null || textureData.Length == 0) return null;
 
         int width = tex.Width, height = tex.Height, mips = tex.Levels;
