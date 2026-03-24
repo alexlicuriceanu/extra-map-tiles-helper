@@ -59,7 +59,7 @@ public class LuaConfigService
         return sb.ToString();
     }
 
-    public static IEnumerable<ParsedTileData> ParseLuaConfig(string luaContent)
+    public IEnumerable<ParsedTileData> ParseLuaConfig(string luaContent)
     {
         var tiles = new List<ParsedTileData>();
 
@@ -156,7 +156,7 @@ public class LuaConfigService
         return tiles;
     }
 
-    private static string ExtractTilesTableBody(string luaContent)
+    private string ExtractTilesTableBody(string luaContent)
     {
         var markerMatch = Regex.Match(luaContent, @"config\.tiles\s*=\s*\{", RegexOptions.IgnoreCase);
         if (!markerMatch.Success)

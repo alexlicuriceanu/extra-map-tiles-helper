@@ -891,13 +891,13 @@ public partial class MainWindow : Window
         {
             Title = "Import Lua Config",
             AllowMultiple = false,
-            FileTypeFilter =
-            [
+            FileTypeFilter = new[]
+            {
                 new Avalonia.Platform.Storage.FilePickerFileType("Lua files")
                 {
-                    Patterns = ["*.lua"]
+                    Patterns = new[] { "*.lua" }
                 }
-            ]
+            }
         });
 
         if (files.Count == 0)
@@ -912,7 +912,8 @@ public partial class MainWindow : Window
                 luaContent = await reader.ReadToEndAsync();
             }
 
-            var parsedTiles = LuaConfigService.ParseLuaConfig(luaContent)
+            var parsedTiles = _luaConfigService
+                .ParseLuaConfig(luaContent)
                 .OrderBy(t => t.ConfigId <= 0 ? int.MaxValue : t.ConfigId)
                 .ToList();
 
@@ -1109,5 +1110,21 @@ public partial class MainWindow : Window
         
         ExportConfigMenuItem?.IsEnabled = hasTiles;
         RemoveAllPlacedTilesMenuItem?.IsEnabled = hasTiles;
+    }
+
+    private void OnTutorialClicked(object? sender, RoutedEventArgs e)
+    {
+        var tutorialWindow = new TutorialWindow();
+        tutorialWindow.Show();
+    }
+
+    private void OnAboutClicked(object? sender, RoutedEventArgs e)
+    {
+        AboutOverlay.IsVisible = true;
+    }
+
+    private void OnCloseAboutClicked(object? sender, RoutedEventArgs e)
+    {
+        AboutOverlay.IsVisible = false;
     }
 }

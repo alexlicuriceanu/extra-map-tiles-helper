@@ -37,6 +37,7 @@
     </Window.Styles>
 
 	<LayoutTransformControl x:Name="RootTransform">
+	<Panel>
 	<DockPanel>
 		<DockPanel DockPanel.Dock="Top" Background="#282828">
 			<!-- NEW: Status Indicator in the top right -->
@@ -101,6 +102,21 @@
 				<MenuItem Header="_Options">
 					<MenuItem Header="Show Default Map" ToggleType="CheckBox" IsChecked="True" Click="OnToggleDefaultTilesClicked"/>
 					<MenuItem Header="Tile Snapping" ToggleType="CheckBox" IsChecked="True" Click="OnToggleTileSnappingClicked"/>
+				</MenuItem>
+
+				<!-- NEW: Help menu with Tutorial and About -->
+				<MenuItem Header="_Help">
+					<MenuItem Header="_Tutorial" Click="OnTutorialClicked">
+						<MenuItem.Icon>
+							<ic:FluentIcon Icon="Book" />
+						</MenuItem.Icon>
+					</MenuItem>
+					<Separator/>
+					<MenuItem Header="_About" Click="OnAboutClicked">
+						<MenuItem.Icon>
+							<ic:FluentIcon Icon="Info" />
+						</MenuItem.Icon>
+					</MenuItem>
 				</MenuItem>
 			</Menu>
 		</DockPanel>
@@ -370,5 +386,21 @@
 
         </Grid>
 	</DockPanel>
+
+	<!-- NEW: About Overlay -->
+	<Border x:Name="AboutOverlay" Background="#99000000" IsVisible="False" ZIndex="1000">
+		<Border Background="#282828" BorderBrush="#3e3e42" BorderThickness="1" CornerRadius="8" Width="450" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="20">
+			<StackPanel Spacing="10">
+				<TextBlock Text="About Extra Map Tiles Helper" FontSize="18" FontWeight="SemiBold" Foreground="White" />
+				<ScrollViewer MaxHeight="300" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Margin="0,10">
+					<!-- License text goes here -->
+					<TextBlock Text="MIT License&#x0a;&#x0a;Copyright (c) 2026&#x0a;&#x0a;Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the &quot;Software&quot;), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:&#x0a;&#x0a;The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.&#x0a;&#x0a;THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED..." TextWrapping="Wrap" Foreground="#cccccc" />
+				</ScrollViewer>
+				<Button Content="Close" Click="OnCloseAboutClicked" HorizontalAlignment="Right" Background="#3e3e42" Foreground="White" />
+			</StackPanel>
+		</Border>
+	</Border>
+
+	</Panel>
 	</LayoutTransformControl>
 </Window>
