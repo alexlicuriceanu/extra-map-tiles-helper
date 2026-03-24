@@ -29,7 +29,7 @@ public sealed class ProjectController
         {
             Title = "Select YTD Files",
             AllowMultiple = true,
-            FileTypeFilter = new[] { new FilePickerFileType("Texture Dictionary") { Patterns = new[] { "*.ytd" } } }
+            FileTypeFilter = [new FilePickerFileType("Texture Dictionary") { Patterns = ["*.ytd"] }]
         });
 
         if (files.Count == 0) return;

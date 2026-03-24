@@ -8,7 +8,7 @@ namespace ExtraMapTilesHelper.Services;
 
 public class LuaConfigService
 {
-    public string GenerateLuaConfig(IEnumerable<PlacedTileItem> tiles)
+    public static string GenerateLuaConfig(IEnumerable<PlacedTileItem> tiles)
     {
         var sb = new StringBuilder();
         sb.AppendLine("config = {}");
@@ -59,7 +59,7 @@ public class LuaConfigService
         return sb.ToString();
     }
 
-    public IEnumerable<ParsedTileData> ParseLuaConfig(string luaContent)
+    public static IEnumerable<ParsedTileData> ParseLuaConfig(string luaContent)
     {
         var tiles = new List<ParsedTileData>();
 

@@ -121,7 +121,7 @@ public class YtdService
         return new Bitmap(ms);
     }
 
-    private SKImage CreateThumbnail(SKBitmap original, int maxSize)
+    private static SKImage CreateThumbnail(SKBitmap original, int maxSize)
     {
         float ratio = Math.Min((float)maxSize / original.Width, (float)maxSize / original.Height);
         var resizeInfo = new SKImageInfo((int)(original.Width * ratio), (int)(original.Height * ratio), SKColorType.Bgra8888, SKAlphaType.Unpremul);
@@ -129,7 +129,7 @@ public class YtdService
         return SKImage.FromBitmap(resizedBitmap);
     }
 
-    private byte[]? GetDdsWithHeader(Texture tex)
+    private static byte[]? GetDdsWithHeader(Texture tex)
     {
         if (tex == null) return null;
         byte[]? textureData = tex.Data?.FullData;
@@ -138,11 +138,12 @@ public class YtdService
         int width = tex.Width, height = tex.Height, mips = tex.Levels;
         string format = tex.Format.ToString().ToUpper(); // Ensure case-insensitive check
 
-        string fourCC = "DXT1";
         bool isDx10 = false;
         uint dxgiFormat = 0;
         int blockSize = 16;
-        
+
+
+        string fourCC;
         // Determine Format, FourCC, and BlockSize
         if (format.Contains("DXT1") || format.Contains("BC1"))
         {

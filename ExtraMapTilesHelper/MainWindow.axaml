@@ -268,26 +268,9 @@
                                         </StackPanel>
                                         
                                         <StackPanel Spacing="5">
-                                            <ToggleSwitch x:Name="VisibleToggle"
-                                                          OffContent="Visible"
-                                                          OnContent="Visible"
-                                                          IsChecked="True"
-                                                          Checked="OnVisibleToggled"
-                                                          Unchecked="OnVisibleToggled"/>
-                                                          
-                                            <ToggleSwitch x:Name="CenteredToggle"
-                                                          OffContent="Centered"
-                                                          OnContent="Centered"
-                                                          IsChecked="False"
-                                                          Checked="OnCenteredToggled"
-                                                          Unchecked="OnCenteredToggled"/>
-
-                                            <ToggleSwitch x:Name="CoordinateModeToggle"
-                                                          OffContent="Offset Mode"
-                                                          OnContent="Offset Mode"
-                                                          IsChecked="True"
-                                                          Checked="OnCoordinateModeToggled"
-                                                          Unchecked="OnCoordinateModeToggled"/>
+                                            <ToggleSwitch x:Name="VisibleToggle" OffContent="Visible" OnContent="Visible" IsChecked="True" IsCheckedChanged="OnVisibleToggled"/>
+                                            <ToggleSwitch x:Name="CenteredToggle" OffContent="Centered" OnContent="Centered" IsChecked="False" IsCheckedChanged="OnCenteredToggled"/>
+                                            <ToggleSwitch x:Name="CoordinateModeToggle" OffContent="Offset Mode" OnContent="Offset Mode" IsChecked="True" IsCheckedChanged="OnCoordinateModeToggled"/>
                                         </StackPanel>
                                     </DockPanel>
 

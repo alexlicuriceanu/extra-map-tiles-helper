@@ -1,3 +1,5 @@
+#pragma warning disable CS0618
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -88,10 +90,7 @@ public partial class MainWindow : Window
         Dispatcher.UIThread.Post(() =>
         {
             DictionaryCountText.Text = $"Texture Dictionaries ({Dictionaries.Count})";
-            if (RemoveAllYtdsMenuItem != null)
-            {
-                RemoveAllYtdsMenuItem.IsEnabled = Dictionaries.Count > 0;
-            }
+            RemoveAllYtdsMenuItem?.IsEnabled = Dictionaries.Count > 0;
         });
     }
 
@@ -260,13 +259,13 @@ public partial class MainWindow : Window
         {
             Title = "Export Lua Config",
             DefaultExtension = "lua",
-            FileTypeChoices = new[]
-            {
+            FileTypeChoices =
+            [
                 new Avalonia.Platform.Storage.FilePickerFileType("Lua files")
                 {
-                    Patterns = new[] { "*.lua" }
+                    Patterns = ["*.lua"]
                 }
-            }
+            ]
         };
 
         var selectedFile = await StorageProvider.SaveFilePickerAsync(saveFileOptions);
@@ -275,7 +274,7 @@ public partial class MainWindow : Window
         {
             try
             {
-                string luaContent = _luaConfigService.GenerateLuaConfig(PlacedTiles);
+                string luaContent = LuaConfigService.GenerateLuaConfig(PlacedTiles);
 
                 using (var stream = await selectedFile.OpenWriteAsync())
                 using (var writer = new System.IO.StreamWriter(stream))
@@ -892,13 +891,13 @@ public partial class MainWindow : Window
         {
             Title = "Import Lua Config",
             AllowMultiple = false,
-            FileTypeFilter = new[]
-            {
+            FileTypeFilter =
+            [
                 new Avalonia.Platform.Storage.FilePickerFileType("Lua files")
                 {
-                    Patterns = new[] { "*.lua" }
+                    Patterns = ["*.lua"]
                 }
-            }
+            ]
         });
 
         if (files.Count == 0)
@@ -913,8 +912,7 @@ public partial class MainWindow : Window
                 luaContent = await reader.ReadToEndAsync();
             }
 
-            var parsedTiles = _luaConfigService
-                .ParseLuaConfig(luaContent)
+            var parsedTiles = LuaConfigService.ParseLuaConfig(luaContent)
                 .OrderBy(t => t.ConfigId <= 0 ? int.MaxValue : t.ConfigId)
                 .ToList();
 
@@ -1080,8 +1078,7 @@ public partial class MainWindow : Window
                 .OfType<Image>()
                 .FirstOrDefault(i => i.Tag == tile);
 
-            if (image != null)
-                image.Source = GetCanvasTileImageSource(tile);
+            image?.Source = GetCanvasTileImageSource(tile);
 
             if (_selectionController.CurrentTile == tile && _selectionController.CurrentImage == image && image != null)
                 OnSelectionChanged(tile, image);
@@ -1110,10 +1107,7 @@ public partial class MainWindow : Window
     {
         bool hasTiles = PlacedTiles.Count > 0;
         
-        if (ExportConfigMenuItem != null)
-            ExportConfigMenuItem.IsEnabled = hasTiles;
-            
-        if (RemoveAllPlacedTilesMenuItem != null)
-            RemoveAllPlacedTilesMenuItem.IsEnabled = hasTiles;
+        ExportConfigMenuItem?.IsEnabled = hasTiles;
+        RemoveAllPlacedTilesMenuItem?.IsEnabled = hasTiles;
     }
 }
